@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { prisma } from "@recipe-planner/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -15,14 +15,10 @@ export default async function RecipeDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const session = await getServerSession(authOptions);
-  const user = session?.user;
-  if (!user?.id) redirect("/login");
-  const isAdmin = user.role === "admin";
+  const isAdmin = session?.user?.role === "admin";
   const { id } = await params;
 
-  const recipe = await prisma.recipe.findFirst({
-    where: { id, userId: user.id },
-  });
+  const recipe = await prisma.recipe.findUnique({ where: { id } });
   if (!recipe) notFound();
 
   const ingredients = parseIngredients(recipe.ingredients);
@@ -89,18 +85,21 @@ export default async function RecipeDetailPage({
         </details>
       )}
 
-      <RecipeEditor
-        recipeId={recipe.id}
-        initial={{
-          name: recipe.name,
-          servings: recipe.servings,
-          ingredients,
-          steps,
-          status: recipe.status,
-        }}
-      />
-
-      {recipe.status === "ready" && <RecipeChat recipeId={recipe.id} />}
+      {isAdmin && (
+        <>
+          <RecipeEditor
+            recipeId={recipe.id}
+            initial={{
+              name: recipe.name,
+              servings: recipe.servings,
+              ingredients,
+              steps,
+              status: recipe.status,
+            }}
+          />
+          {recipe.status === "ready" && <RecipeChat recipeId={recipe.id} />}
+        </>
+      )}
     </div>
   );
 }

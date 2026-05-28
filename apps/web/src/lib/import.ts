@@ -10,12 +10,15 @@ import {
   isYouTubeUrl,
   normalizeSourceUrl,
 } from "@recipe-planner/shared";
+import { getSharedOwnerUserId } from "./shared-user";
 
 export async function enqueueUrlImport(
-  userId: string,
+  adminUserId: string,
   url: string,
   options?: { name?: string }
 ): Promise<{ recipeId: string; jobId: string; skipped: boolean }> {
+  const userId = await getSharedOwnerUserId();
+  void adminUserId;
   const normalizedUrl = normalizeSourceUrl(url);
   const sourceType = isYouTubeUrl(normalizedUrl)
     ? SourceType.youtube
@@ -47,7 +50,7 @@ export async function enqueueUrlImport(
 
   const job = await prisma.importJob.create({
     data: {
-      userId,
+      userId: adminUserId,
       recipeId: recipe.id,
       type:
         sourceType === SourceType.youtube

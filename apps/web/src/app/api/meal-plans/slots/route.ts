@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@recipe-planner/db";
-import { requireUser } from "@/lib/session";
+import { getSharedOwnerUserId } from "@/lib/shared-user";
 import { parseWeekParam } from "@/lib/week";
 import { z } from "zod";
 
@@ -14,24 +14,24 @@ const slotSchema = z.object({
 
 export async function POST(req: Request) {
   try {
-    const user = await requireUser();
+    const ownerId = await getSharedOwnerUserId();
     const body = slotSchema.parse(await req.json());
     const week = parseWeekParam(body.week);
 
     let plan = await prisma.mealPlan.findUnique({
       where: {
-        userId_weekStartDate: { userId: user.id, weekStartDate: week },
+        userId_weekStartDate: { userId: ownerId, weekStartDate: week },
       },
     });
 
     if (!plan) {
       plan = await prisma.mealPlan.create({
-        data: { userId: user.id, weekStartDate: week },
+        data: { userId: ownerId, weekStartDate: week },
       });
     }
 
-    const recipe = await prisma.recipe.findFirst({
-      where: { id: body.recipeId, userId: user.id },
+    const recipe = await prisma.recipe.findUnique({
+      where: { id: body.recipeId },
     });
     if (!recipe) {
       return NextResponse.json({ error: "Recipe not found" }, { status: 404 });
@@ -51,16 +51,13 @@ export async function POST(req: Request) {
     return NextResponse.json(slot);
   } catch (e) {
     const message = e instanceof Error ? e.message : "Failed";
-    return NextResponse.json(
-      { error: message },
-      { status: message === "Unauthorized" ? 401 : 500 }
-    );
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
 export async function DELETE(req: Request) {
   try {
-    const user = await requireUser();
+    const ownerId = await getSharedOwnerUserId();
     const { searchParams } = new URL(req.url);
     const slotId = searchParams.get("slotId");
     if (!slotId) {
@@ -72,7 +69,7 @@ export async function DELETE(req: Request) {
       include: { mealPlan: true },
     });
 
-    if (!slot || slot.mealPlan.userId !== user.id) {
+    if (!slot || slot.mealPlan.userId !== ownerId) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
@@ -80,16 +77,13 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ ok: true });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Failed";
-    return NextResponse.json(
-      { error: message },
-      { status: message === "Unauthorized" ? 401 : 500 }
-    );
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
 export async function PATCH(req: Request) {
   try {
-    const user = await requireUser();
+    const ownerId = await getSharedOwnerUserId();
     const body = await req.json();
     const { slotId, servingsMultiplier } = body;
 
@@ -98,7 +92,7 @@ export async function PATCH(req: Request) {
       include: { mealPlan: true },
     });
 
-    if (!slot || slot.mealPlan.userId !== user.id) {
+    if (!slot || slot.mealPlan.userId !== ownerId) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
@@ -111,9 +105,6 @@ export async function PATCH(req: Request) {
     return NextResponse.json(updated);
   } catch (e) {
     const message = e instanceof Error ? e.message : "Failed";
-    return NextResponse.json(
-      { error: message },
-      { status: message === "Unauthorized" ? 401 : 500 }
-    );
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

@@ -1,7 +1,5 @@
 import Link from "next/link";
 import { prisma } from "@recipe-planner/db";
-import { getSessionUser } from "@/lib/session";
-import { redirect } from "next/navigation";
 import { StatusBadge } from "@/components/StatusBadge";
 
 export default async function RecipesPage({
@@ -9,15 +7,10 @@ export default async function RecipesPage({
 }: {
   searchParams: Promise<{ status?: string }>;
 }) {
-  const user = await getSessionUser();
-  if (!user?.id) redirect("/login");
   const { status } = await searchParams;
 
   const recipes = await prisma.recipe.findMany({
-    where: {
-      userId: user.id,
-      ...(status ? { status: status as never } : {}),
-    },
+    where: status ? { status: status as never } : undefined,
     orderBy: { updatedAt: "desc" },
   });
 

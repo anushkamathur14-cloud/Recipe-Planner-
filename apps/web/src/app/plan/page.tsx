@@ -1,5 +1,3 @@
-import { redirect } from "next/navigation";
-import { getSessionUser } from "@/lib/session";
 import {
   parseWeekParam,
   formatWeekKey,
@@ -12,9 +10,6 @@ export default async function PlanPage({
 }: {
   searchParams: Promise<{ week?: string }>;
 }) {
-  const user = await getSessionUser();
-  if (!user?.id) redirect("/login");
-
   const { week: weekParam } = await searchParams;
   const monday = parseWeekParam(weekParam);
   const week = formatWeekKey(monday);
@@ -26,7 +21,7 @@ export default async function PlanPage({
       <h1>Weekly meal plan</h1>
       <p className="muted">
         Assign recipes to days, adjust serving multipliers, and get a combined
-        shopping list with ingredient quantities.
+        shopping list. Everyone shares the same plan.
       </p>
       <MealPlanner week={week} prevWeek={prevWeek} nextWeek={nextWeek} />
     </div>

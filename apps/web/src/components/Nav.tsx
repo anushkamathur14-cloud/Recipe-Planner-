@@ -14,14 +14,15 @@ export async function Nav() {
           Recipe Planner
         </Link>
         <Link href="/recipes">Recipes</Link>
+        <Link href="/plan">Meal Plan</Link>
         {isAdmin && (
           <>
             <Link href="/import/youtube">YouTube</Link>
             <Link href="/import/instagram">Instagram</Link>
+            <Link href="/settings">Settings</Link>
           </>
         )}
-        <Link href="/plan">Meal Plan</Link>
-        {isAdmin && <Link href="/settings">Settings</Link>}
+        {!isAdmin && <Link href="/login">Admin</Link>}
       </div>
       <NavAuth isAdmin={isAdmin} userName={session?.user?.name} />
     </nav>
