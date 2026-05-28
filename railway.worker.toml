@@ -6,6 +6,4 @@ dockerfilePath = "Dockerfile.worker"
 [deploy]
 startCommand = "npm run start --workspace=@recipe-planner/worker"
 restartPolicyType = "ON_FAILURE"
-# Worker has no HTTP server — in Railway UI: Settings → Deploy → disable healthcheck
-healthcheckPath = ""
-healthcheckTimeout = 1
+healthcheckPath = "/health"

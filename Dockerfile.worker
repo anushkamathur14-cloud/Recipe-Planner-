@@ -17,4 +17,6 @@ COPY . .
 RUN npm ci --ignore-scripts \
   && node scripts/prisma-generate.cjs
 
+ENV HOSTNAME=0.0.0.0
+EXPOSE 8080
 CMD ["npm", "run", "start", "--workspace=@recipe-planner/worker"]

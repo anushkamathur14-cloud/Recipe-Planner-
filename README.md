@@ -91,7 +91,7 @@ Required variables on both services:
 
 Worker only needs DB + OpenAI keys (no NextAuth).
 
-**Worker healthcheck:** The worker is not a web server. In Railway → worker service → **Settings → Deploy**, **turn off healthcheck** (or it will fail waiting for HTTP).
+**Worker:** No public domain needed. It exposes `/health` on Railway’s `PORT` for deploy checks only (not for users).
 
 ## Project structure
 
