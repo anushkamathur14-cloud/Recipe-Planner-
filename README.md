@@ -77,6 +77,10 @@ Create a Railway project with:
 
 **Important:** If the service name shows `@recipe-planner/web`, Railway may use Nixpacks by default. Switch the builder to **Dockerfile** and redeploy — do not use `apps/web` as root directory.
 
+**Web healthcheck:** Uses `/api/health` (not `/`) because the dashboard requires login.
+
+**Public URL:** In Railway → web service → **Settings → Networking → Generate Domain**, then set `NEXTAUTH_URL` to that URL (e.g. `https://your-app.up.railway.app`).
+
 Required variables on both services:
 
 - `DATABASE_URL`
@@ -86,6 +90,8 @@ Required variables on both services:
 - `AUTH_EMAIL` / `AUTH_PASSWORD`
 
 Worker only needs DB + OpenAI keys (no NextAuth).
+
+**Worker healthcheck:** The worker is not a web server. In Railway → worker service → **Settings → Deploy**, **turn off healthcheck** (or it will fail waiting for HTTP).
 
 ## Project structure
 

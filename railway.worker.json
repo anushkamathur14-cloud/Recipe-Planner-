@@ -6,6 +6,7 @@
   },
   "deploy": {
     "startCommand": "npm run start --workspace=@recipe-planner/worker",
-    "restartPolicyType": "ON_FAILURE"
+    "restartPolicyType": "ON_FAILURE",
+    "healthcheckPath": ""
   }
 }

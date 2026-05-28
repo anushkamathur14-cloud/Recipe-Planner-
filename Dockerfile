@@ -27,5 +27,6 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build --workspace=@recipe-planner/web
 
 ENV NODE_ENV=production
+ENV HOSTNAME=0.0.0.0
 EXPOSE 3000
 CMD ["npm", "run", "start", "--workspace=@recipe-planner/web"]

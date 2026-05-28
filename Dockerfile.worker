@@ -1,4 +1,5 @@
-# Worker service — set Dockerfile path to Dockerfile.worker in Railway
+# Worker — Railway: Root Directory = repo root, Dockerfile path = Dockerfile.worker
+# Disable HTTP healthcheck for this service (no web server).
 FROM node:22-bookworm-slim
 WORKDIR /app
 
@@ -11,21 +12,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   && pip3 install --break-system-packages yt-dlp \
   && rm -rf /var/lib/apt/lists/*
 
-COPY package.json package-lock.json ./
-COPY apps/web/package.json ./apps/web/
-COPY apps/worker/package.json ./apps/worker/
-COPY packages/db/package.json ./packages/db/
-COPY packages/shared/package.json ./packages/shared/
-COPY packages/db/prisma ./packages/db/prisma
+COPY . .
 
-RUN npm ci --ignore-scripts
+RUN npm ci --ignore-scripts \
+  && node scripts/prisma-generate.cjs
 
-COPY scripts/prisma-generate.cjs ./scripts/prisma-generate.cjs
-COPY packages/db/src ./packages/db/src
-COPY packages/shared/src ./packages/shared/src
-COPY apps/worker ./apps/worker
-
-RUN node scripts/prisma-generate.cjs
-
-WORKDIR /app/apps/worker
-CMD ["npm", "start"]
+CMD ["npm", "run", "start", "--workspace=@recipe-planner/worker"]
