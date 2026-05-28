@@ -1,0 +1,15 @@
+# Use this as Config-as-code for the WORKER service (not the web service)
+[phases.setup]
+nixPkgs = ["nodejs_22", "openssl", "ffmpeg", "python311"]
+
+[phases.install]
+cmds = [
+  "npm ci --ignore-scripts",
+  "pip3 install --break-system-packages yt-dlp 2>/dev/null || pip3 install yt-dlp",
+]
+
+[phases.build]
+cmds = ["npm run db:generate"]
+
+[start]
+cmd = "npm run start --workspace=@recipe-planner/worker"

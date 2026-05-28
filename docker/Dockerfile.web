@@ -20,7 +20,8 @@ COPY packages/db/src ./packages/db/src
 COPY packages/shared/src ./packages/shared/src
 COPY apps/web ./apps/web
 
-RUN npm run db:generate
+COPY scripts/prisma-generate.cjs ./scripts/prisma-generate.cjs
+RUN node scripts/prisma-generate.cjs
 
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build --workspace=@recipe-planner/web

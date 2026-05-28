@@ -20,11 +20,12 @@ COPY packages/db/prisma ./packages/db/prisma
 
 RUN npm ci --ignore-scripts
 
+COPY scripts/prisma-generate.cjs ./scripts/prisma-generate.cjs
 COPY packages/db/src ./packages/db/src
 COPY packages/shared/src ./packages/shared/src
 COPY apps/worker ./apps/worker
 
-RUN npm run db:generate
+RUN node scripts/prisma-generate.cjs
 
 WORKDIR /app/apps/worker
 CMD ["npm", "start"]

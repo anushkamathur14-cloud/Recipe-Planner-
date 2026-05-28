@@ -1,6 +1,8 @@
+# Worker service: Root Directory MUST be repo root (leave blank in Railway UI)
 [build]
 builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile.worker"
 
 [deploy]
+startCommand = "npm run start --workspace=@recipe-planner/worker"
 restartPolicyType = "ON_FAILURE"

@@ -1,0 +1,15 @@
+# Used when Railway Root Directory is wrongly set to apps/worker — runs from monorepo root
+[phases.setup]
+nixPkgs = ["nodejs_22", "openssl", "ffmpeg", "python311"]
+
+[phases.install]
+cmds = [
+  "cd ../.. && npm ci --ignore-scripts",
+  "pip3 install --break-system-packages yt-dlp 2>/dev/null || pip3 install yt-dlp",
+]
+
+[phases.build]
+cmds = ["cd ../.. && npm run db:generate"]
+
+[start]
+cmd = "cd ../.. && npm run start --workspace=@recipe-planner/worker"
