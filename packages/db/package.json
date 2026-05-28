@@ -2,13 +2,13 @@
   "name": "@recipe-planner/db",
   "version": "0.1.0",
   "private": true,
-  "main": "./src/index.ts",
+  "main": "./dist/index.js",
   "types": "./src/index.ts",
   "scripts": {
     "generate": "prisma generate --schema=./prisma/schema.prisma",
     "migrate": "prisma migrate dev",
     "push": "prisma db push",
-    "build": "prisma generate"
+    "build": "tsc && prisma generate"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3"

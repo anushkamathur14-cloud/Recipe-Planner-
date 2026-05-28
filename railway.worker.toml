@@ -4,7 +4,7 @@ builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile.worker"
 
 [deploy]
-startCommand = "npm run start --workspace=@recipe-planner/worker"
+startCommand = "node apps/worker/dist/index.js"
 restartPolicyType = "ON_FAILURE"
 # Railway may use /api/health or /health — worker responds to both
 healthcheckPath = "/api/health"

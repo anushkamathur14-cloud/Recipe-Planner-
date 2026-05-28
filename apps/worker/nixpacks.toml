@@ -9,7 +9,12 @@ cmds = [
 ]
 
 [phases.build]
-cmds = ["cd ../.. && npm run db:generate"]
+cmds = [
+  "cd ../.. && node scripts/prisma-generate.cjs",
+  "cd ../.. && npm run build --workspace=@recipe-planner/shared",
+  "cd ../.. && npm run build --workspace=@recipe-planner/db",
+  "cd ../.. && npm run build --workspace=@recipe-planner/worker",
+]
 
 [start]
-cmd = "cd ../.. && npm run start --workspace=@recipe-planner/worker"
+cmd = "cd ../.. && node apps/worker/dist/index.js"
