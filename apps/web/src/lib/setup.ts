@@ -1,15 +1,6 @@
 import { prisma } from "@recipe-planner/db";
-import { createHash } from "crypto";
 
-export function getAuthSecret(): string {
-  if (process.env.NEXTAUTH_SECRET) return process.env.NEXTAUTH_SECRET;
-  if (process.env.NODE_ENV !== "production") return "dev-nextauth-secret";
-  const material =
-    process.env.AUTH_PASSWORD ??
-    process.env.DATABASE_URL ??
-    "recipe-planner-fallback";
-  return createHash("sha256").update(`nextauth:${material}`).digest("hex");
-}
+export { getAuthSecret } from "./auth-secret";
 
 export function getSetupIssues(): string[] {
   const issues: string[] = [];

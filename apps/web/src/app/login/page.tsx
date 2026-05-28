@@ -2,10 +2,9 @@
 
 import { signIn } from "next-auth/react";
 import { useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 
 export default function LoginPage() {
-  const router = useRouter();
   const params = useSearchParams();
   const [username, setUsername] = useState("Admin-1");
   const [password, setPassword] = useState("");
@@ -48,8 +47,8 @@ export default function LoginPage() {
       return;
     }
 
-    router.push(params.get("callbackUrl") ?? "/");
-    router.refresh();
+    const dest = params.get("callbackUrl") ?? "/";
+    window.location.href = dest.startsWith("/") ? dest : "/";
   }
 
   return (
