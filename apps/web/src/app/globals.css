@@ -98,9 +98,17 @@ label {
   gap: 1rem;
   flex-wrap: wrap;
   align-items: center;
+  justify-content: space-between;
   padding: 1rem 1.5rem;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
+}
+
+.nav-links {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  align-items: center;
 }
 
 .nav a {
@@ -115,7 +123,64 @@ label {
 .nav .brand {
   font-weight: 700;
   font-size: 1.15rem;
-  margin-right: auto;
+  margin-right: 0.5rem;
+}
+
+.nav-auth {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-left: auto;
+}
+
+.admin-badge {
+  display: inline-block;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fcd34d;
+}
+
+.nav-user {
+  font-size: 0.85rem;
+}
+
+.btn-sm {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.85rem;
+}
+
+.password-field {
+  display: flex;
+  gap: 0.5rem;
+  align-items: stretch;
+  margin-bottom: 0.75rem;
+}
+
+.password-field input {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+.password-toggle {
+  flex-shrink: 0;
+  padding: 0 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.password-toggle:hover {
+  background: var(--border);
+  color: var(--text);
 }
 
 .badge {

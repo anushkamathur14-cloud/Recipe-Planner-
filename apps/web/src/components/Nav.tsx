@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { NavAuth } from "./NavAuth";
 
 export async function Nav() {
   const session = await getServerSession(authOptions);
@@ -8,18 +9,21 @@ export async function Nav() {
 
   return (
     <nav className="nav">
-      <Link href="/" className="brand">
-        Recipe Planner
-      </Link>
-      <Link href="/recipes">Recipes</Link>
-      {isAdmin && (
-        <>
-          <Link href="/import/youtube">YouTube</Link>
-          <Link href="/import/instagram">Instagram</Link>
-        </>
-      )}
-      <Link href="/plan">Meal Plan</Link>
-      {isAdmin && <Link href="/settings">Settings</Link>}
+      <div className="nav-links">
+        <Link href="/" className="brand">
+          Recipe Planner
+        </Link>
+        <Link href="/recipes">Recipes</Link>
+        {isAdmin && (
+          <>
+            <Link href="/import/youtube">YouTube</Link>
+            <Link href="/import/instagram">Instagram</Link>
+          </>
+        )}
+        <Link href="/plan">Meal Plan</Link>
+        {isAdmin && <Link href="/settings">Settings</Link>}
+      </div>
+      <NavAuth isAdmin={isAdmin} userName={session?.user?.name} />
     </nav>
   );
 }
