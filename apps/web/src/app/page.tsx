@@ -79,6 +79,20 @@ export default async function DashboardPage() {
         </div>
       </div>
 
+      {isAdmin && stats[0] === 0 && (
+        <div className="card" style={{ borderColor: "#1565c0" }}>
+          <h3>Starter recipe library (~80 links)</h3>
+          <p className="muted">
+            Your YouTube & Instagram list is saved in the app but not imported
+            yet. Queue them once, then the worker transcribes each video (this
+            can take hours).
+          </p>
+          <Link href="/import/youtube" className="btn">
+            Import starter library
+          </Link>
+        </div>
+      )}
+
       {isAdmin && (
         <div className="card">
           <h3>Quick import (admin)</h3>

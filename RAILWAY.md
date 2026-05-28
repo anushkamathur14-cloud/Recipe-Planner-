@@ -57,6 +57,21 @@ Use your real `AUTH_PASSWORD` instead of `Pwd-11`.
 DATABASE_URL="postgresql://..." npm run db:push
 ```
 
+### Queue your saved recipe list (~80 URLs)
+
+The links you sent live in `seeds/initial-recipes.json`. They are **not** added automatically.
+
+**In the app (after admin login):** **YouTube** → **Import starter library**
+
+**Or one command** (use your `AUTH_PASSWORD`):
+
+```bash
+curl -X POST "https://YOUR-WEB-URL.up.railway.app/api/setup/seed-library" \
+  -H "x-setup-secret: Pwd-11"
+```
+
+Recipes appear as **pending/processing** until the **worker** finishes transcription.
+
 ## Verify the right commit built
 
 In **Deployments**, the commit message should include *"Fix worker Railway build"* or newer.
