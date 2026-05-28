@@ -87,7 +87,7 @@ export default function InstagramImportPage() {
 
   return (
     <div className="container">
-      <h1>Import from Instagram</h1>
+      <h1>Import from Instagram & Facebook</h1>
 
       <div className="card">
         <h3>Privacy notice</h3>
@@ -100,13 +100,18 @@ export default function InstagramImportPage() {
       </div>
 
       <div className="card">
-        <h3>Paste reel or post URLs</h3>
+        <h3>Paste reel URLs</h3>
+        <p className="muted">
+          Instagram reels/posts and Facebook reels (including fb.watch links).
+        </p>
         <form onSubmit={importUrls}>
           <textarea
             rows={4}
             value={urls}
             onChange={(e) => setUrls(e.target.value)}
-            placeholder="https://www.instagram.com/reel/..."
+            placeholder={
+              "https://www.instagram.com/reel/...\nhttps://www.facebook.com/reel/...\nhttps://fb.watch/..."
+            }
           />
           <button type="submit" className="btn" disabled={loading}>
             Import URLs

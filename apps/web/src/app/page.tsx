@@ -100,7 +100,7 @@ export default async function DashboardPage() {
             YouTube
           </Link>
           <Link href="/import/instagram" className="btn btn-secondary">
-            Instagram
+            IG / Facebook
           </Link>
         </div>
       )}

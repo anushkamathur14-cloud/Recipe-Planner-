@@ -18,7 +18,7 @@ export async function Nav() {
         {isAdmin && (
           <>
             <Link href="/import/youtube">YouTube</Link>
-            <Link href="/import/instagram">Instagram</Link>
+            <Link href="/import/instagram">IG / Facebook</Link>
             <Link href="/settings">Settings</Link>
           </>
         )}

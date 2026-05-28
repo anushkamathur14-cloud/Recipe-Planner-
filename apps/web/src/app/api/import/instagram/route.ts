@@ -1,18 +1,18 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin";
 import { enqueueUrlImport } from "@/lib/import";
-import { extractInstagramUrls } from "@recipe-planner/shared";
+import { extractSocialReelUrls } from "@recipe-planner/shared";
 
 export async function POST(req: Request) {
   try {
     const user = await requireAdmin();
     const body = await req.json();
     const input = (body.urls ?? body.url ?? "") as string;
-    const urls = extractInstagramUrls(input);
+    const urls = extractSocialReelUrls(input);
 
     if (!urls.length) {
       return NextResponse.json(
-        { error: "No valid Instagram URLs found" },
+        { error: "No valid Instagram or Facebook reel URLs found" },
         { status: 400 }
       );
     }

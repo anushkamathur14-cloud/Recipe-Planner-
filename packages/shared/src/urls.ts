@@ -1,9 +1,34 @@
 const IG_URL_PATTERN =
-  /https?:\/\/(?:www\.)?instagram\.com\/(?:reel|p|tv)\/[\w-]+/gi;
+  /https?:\/\/(?:www\.)?instagram\.com\/(?:reel|reels|p|tv)\/[\w-]+/gi;
+
+const FACEBOOK_URL_PATTERNS = [
+  /https?:\/\/(?:www\.|m\.)?facebook\.com\/reels?\/[\w-]+/gi,
+  /https?:\/\/(?:www\.|m\.)?facebook\.com\/share\/r\/[\w-]+/gi,
+  /https?:\/\/(?:www\.|m\.)?facebook\.com\/watch\/?\?v=[\w-]+/gi,
+  /https?:\/\/fb\.watch\/[\w-]+/gi,
+];
+
+function matchUrls(text: string, pattern: RegExp): string[] {
+  const re = new RegExp(pattern.source, pattern.flags);
+  return text.match(re) ?? [];
+}
 
 export function extractInstagramUrls(text: string): string[] {
-  const matches = text.match(IG_URL_PATTERN) ?? [];
+  const matches = matchUrls(text, IG_URL_PATTERN);
   return [...new Set(matches.map(normalizeSourceUrl))];
+}
+
+export function extractFacebookUrls(text: string): string[] {
+  const matches: string[] = [];
+  for (const pattern of FACEBOOK_URL_PATTERNS) {
+    matches.push(...matchUrls(text, pattern));
+  }
+  return [...new Set(matches.map(normalizeSourceUrl))];
+}
+
+/** Instagram reels/posts + Facebook reels (paste import). */
+export function extractSocialReelUrls(text: string): string[] {
+  return [...new Set([...extractInstagramUrls(text), ...extractFacebookUrls(text)])];
 }
 
 export function isYouTubeUrl(url: string): boolean {
@@ -22,6 +47,14 @@ export function isYouTubeUrl(url: string): boolean {
 
 export function isInstagramUrl(url: string): boolean {
   return extractInstagramUrls(url).length > 0;
+}
+
+export function isFacebookUrl(url: string): boolean {
+  return extractFacebookUrls(url).length > 0;
+}
+
+export function isSocialReelUrl(url: string): boolean {
+  return isInstagramUrl(url) || isFacebookUrl(url);
 }
 
 /** Canonical watch URL for Gemini / yt-dlp (youtu.be → youtube.com/watch). */
@@ -72,4 +105,14 @@ export function normalizeYouTubeUrls(input: string): string[] {
     }
   }
   return [...new Set(urls)];
+}
+
+export function resolveSourceType(
+  url: string
+): "youtube" | "instagram" | "facebook" | null {
+  const normalized = normalizeSourceUrl(url);
+  if (isYouTubeUrl(normalized)) return "youtube";
+  if (isInstagramUrl(normalized)) return "instagram";
+  if (isFacebookUrl(normalized)) return "facebook";
+  return null;
 }

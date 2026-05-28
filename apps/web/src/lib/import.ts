@@ -5,11 +5,7 @@ import {
   ImportJobType,
   ImportJobStatus,
 } from "@recipe-planner/db";
-import {
-  isInstagramUrl,
-  isYouTubeUrl,
-  normalizeSourceUrl,
-} from "@recipe-planner/shared";
+import { normalizeSourceUrl, resolveSourceType } from "@recipe-planner/shared";
 import { getSharedOwnerUserId } from "./shared-user";
 
 export async function enqueueUrlImport(
@@ -20,14 +16,20 @@ export async function enqueueUrlImport(
   const userId = await getSharedOwnerUserId();
   void adminUserId;
   const normalizedUrl = normalizeSourceUrl(url);
-  const sourceType = isYouTubeUrl(normalizedUrl)
-    ? SourceType.youtube
-    : isInstagramUrl(normalizedUrl)
-      ? SourceType.instagram
-      : null;
+  const kind = resolveSourceType(normalizedUrl);
+  const sourceType =
+    kind === "youtube"
+      ? SourceType.youtube
+      : kind === "instagram"
+        ? SourceType.instagram
+        : kind === "facebook"
+          ? SourceType.facebook
+          : null;
 
   if (!sourceType) {
-    throw new Error("URL must be a YouTube or Instagram link");
+    throw new Error(
+      "URL must be a YouTube, Instagram, or Facebook reel/post link"
+    );
   }
 
   const existing = await prisma.recipe.findUnique({

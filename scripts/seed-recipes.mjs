@@ -27,6 +27,7 @@ function normalizeUrl(url) {
 function sourceType(url) {
   const host = new URL(url).hostname.replace(/^www\./, "");
   if (host.includes("instagram.com")) return "instagram";
+  if (host.includes("facebook.com") || host === "fb.watch") return "facebook";
   if (host.includes("youtube.com") || host === "youtu.be") return "youtube";
   return null;
 }

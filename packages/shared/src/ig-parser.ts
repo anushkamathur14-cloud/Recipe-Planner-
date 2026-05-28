@@ -1,4 +1,13 @@
-import { extractInstagramUrls } from "./urls";
+import { extractInstagramUrls, extractFacebookUrls } from "./urls";
+
+function extractSocialUrlsFromText(text: string): string[] {
+  return [
+    ...new Set([
+      ...extractInstagramUrls(text),
+      ...extractFacebookUrls(text),
+    ]),
+  ];
+}
 
 export type IgThreadSummary = {
   folderName: string;
@@ -34,10 +43,10 @@ export function parseConversationJson(
 
   for (const msg of data.messages ?? []) {
     if (msg.share?.link) {
-      for (const u of extractInstagramUrls(msg.share.link)) urls.add(u);
+      for (const u of extractSocialUrlsFromText(msg.share.link)) urls.add(u);
     }
     if (msg.content) {
-      for (const u of extractInstagramUrls(msg.content)) urls.add(u);
+      for (const u of extractSocialUrlsFromText(msg.content)) urls.add(u);
     }
   }
 

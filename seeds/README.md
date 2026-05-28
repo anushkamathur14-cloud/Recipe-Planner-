@@ -2,9 +2,9 @@
 
 `initial-recipes.json` contains ~80 YouTube and Instagram URLs from your collection.
 
-**Not included (unsupported or no URL):**
+**Supported reel sources:** YouTube, Instagram reels/posts, Facebook reels (`facebook.com/reel`, `fb.watch`, etc.).
 
-- Facebook share links (Paneer Tikka, Chilli chicken) — import manually if yt-dlp supports them
+**Not included (no URL or unsupported):**
 - Gutta venkaya / Baingan curry — no link provided
 - Besan ladoo written quantities only — add manually in the recipe editor after importing the short video
 
