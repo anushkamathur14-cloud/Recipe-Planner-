@@ -1,0 +1,204 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts         Account[]
+  sessions         Session[]
+  recipes          Recipe[]
+  importJobs       ImportJob[]
+  igThreadConfigs  IgThreadConfig[]
+  mealPlans        MealPlan[]
+  recipeChatMessages RecipeChatMessage[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+enum SourceType {
+  youtube
+  instagram
+}
+
+enum RecipeStatus {
+  pending
+  processing
+  ready
+  failed
+}
+
+enum ImportJobStatus {
+  queued
+  processing
+  completed
+  failed
+}
+
+enum ImportJobType {
+  youtube_url
+  instagram_url
+  instagram_export
+}
+
+enum MealType {
+  breakfast
+  lunch
+  dinner
+  snack
+}
+
+enum Confidence {
+  high
+  medium
+  low
+}
+
+model Recipe {
+  id             String       @id @default(cuid())
+  userId         String
+  name           String       @default("Untitled Recipe")
+  servings       Int          @default(4)
+  sourceUrl      String
+  sourceType     SourceType
+  ingredients    Json         @default("[]")
+  steps          Json         @default("[]")
+  transcript     String?      @db.Text
+  rawExtraction  Json?
+  confidence     Confidence   @default(medium)
+  status         RecipeStatus @default(pending)
+  errorMessage   String?      @db.Text
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  importJobs   ImportJob[]
+  mealSlots    MealSlot[]
+  chatMessages RecipeChatMessage[]
+
+  @@unique([userId, sourceUrl])
+  @@index([userId, status])
+}
+
+model ImportJob {
+  id           String          @id @default(cuid())
+  userId       String
+  recipeId     String?
+  type         ImportJobType
+  sourceUrl    String?
+  payload      Json?
+  status       ImportJobStatus @default(queued)
+  progress     String?
+  errorMessage String?         @db.Text
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  startedAt    DateTime?
+  completedAt  DateTime?
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recipe Recipe? @relation(fields: [recipeId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([userId])
+}
+
+model IgThreadConfig {
+  id               String   @id @default(cuid())
+  userId           String
+  threadFolderName String
+  displayName      String
+  enabled          Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, threadFolderName])
+}
+
+model MealPlan {
+  id            String   @id @default(cuid())
+  userId        String
+  weekStartDate DateTime @db.Date
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  slots MealSlot[]
+
+  @@unique([userId, weekStartDate])
+}
+
+model MealSlot {
+  id                 String   @id @default(cuid())
+  mealPlanId         String
+  recipeId           String
+  day                Int
+  mealType           MealType
+  servingsMultiplier Float    @default(1)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  mealPlan MealPlan @relation(fields: [mealPlanId], references: [id], onDelete: Cascade)
+  recipe   Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@index([mealPlanId])
+}
+
+model RecipeChatMessage {
+  id        String   @id @default(cuid())
+  userId    String
+  recipeId  String
+  role      String
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recipe Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@index([recipeId, createdAt])
+}
