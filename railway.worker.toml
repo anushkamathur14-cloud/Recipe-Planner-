@@ -1,4 +1,5 @@
-# Worker service: Root Directory MUST be repo root (leave blank in Railway UI)
+# Worker service: Root Directory = repo root. In Railway → Settings → Config-as-code → railway.worker.toml
+# (If omitted, root Dockerfile still builds worker when RAILWAY_SERVICE_NAME contains "worker".)
 [build]
 builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile.worker"

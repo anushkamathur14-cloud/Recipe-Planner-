@@ -1,15 +1,20 @@
-# Use this as Config-as-code for the WORKER service (not the web service)
+# Worker service — set Config-as-code path to this file in Railway (or use Dockerfile.worker)
 [phases.setup]
 nixPkgs = ["nodejs_22", "openssl", "ffmpeg", "python311"]
 
 [phases.install]
 cmds = [
-  "npm ci --ignore-scripts",
+  "npm ci --ignore-scripts --workspace=@recipe-planner/worker --workspace=@recipe-planner/db --workspace=@recipe-planner/shared",
   "pip3 install --break-system-packages yt-dlp 2>/dev/null || pip3 install yt-dlp",
 ]
 
 [phases.build]
-cmds = ["npm run db:generate"]
+cmds = [
+  "node scripts/prisma-generate.cjs",
+  "npm run build --workspace=@recipe-planner/shared",
+  "npm run build --workspace=@recipe-planner/db",
+  "npm run build --workspace=@recipe-planner/worker",
+]
 
 [start]
-cmd = "npm run start --workspace=@recipe-planner/worker"
+cmd = "node apps/worker/dist/index.js"
