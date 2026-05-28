@@ -6,4 +6,5 @@ dockerfilePath = "Dockerfile.worker"
 [deploy]
 startCommand = "npm run start --workspace=@recipe-planner/worker"
 restartPolicyType = "ON_FAILURE"
-healthcheckPath = "/health"
+# Railway may use /api/health or /health — worker responds to both
+healthcheckPath = "/api/health"

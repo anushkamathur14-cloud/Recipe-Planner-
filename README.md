@@ -93,7 +93,7 @@ Required variables on both services:
 
 Worker only needs DB + OpenAI keys (no NextAuth).
 
-**Worker:** No public domain needed. It exposes `/health` on Railway’s `PORT` for deploy checks only (not for users).
+**Worker:** No public domain needed. Healthcheck: `/api/health` or `/health`. Set `DATABASE_URL` + `OPENAI_API_KEY` on the worker service.
 
 ## Project structure
 
