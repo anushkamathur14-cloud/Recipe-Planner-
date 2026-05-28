@@ -15,41 +15,46 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        let allowedUsername: string;
-        let allowedPassword: string;
-        try {
-          ({ username: allowedUsername, password: allowedPassword } =
-            getAdminCredentials());
-        } catch {
-          return null;
-        }
+        const inputUsername = credentials?.username?.trim() ?? "";
+        const inputPassword = credentials?.password ?? "";
+        const { username: allowedUsername, password: allowedPassword } =
+          getAdminCredentials();
 
         if (
-          credentials?.username !== allowedUsername ||
-          credentials?.password !== allowedPassword
+          inputUsername !== allowedUsername ||
+          inputPassword !== allowedPassword
         ) {
+          console.warn(
+            "[auth] Login rejected for username:",
+            inputUsername
+          );
           return null;
         }
 
         const email = adminEmailForUsername(allowedUsername);
 
-        let user = await prisma.user.findUnique({ where: { email } });
+        try {
+          let user = await prisma.user.findUnique({ where: { email } });
 
-        if (!user) {
-          user = await prisma.user.create({
-            data: {
-              email,
-              name: allowedUsername,
-            },
-          });
+          if (!user) {
+            user = await prisma.user.create({
+              data: {
+                email,
+                name: allowedUsername,
+              },
+            });
+          }
+
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            role: "admin" as const,
+          };
+        } catch (err) {
+          console.error("[auth] Database error during login:", err);
+          return null;
         }
-
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: "admin" as const,
-        };
       },
     }),
   ],
@@ -59,8 +64,7 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
-        token.role =
-          (user as { role?: "admin" | "user" }).role ?? "user";
+        token.role = (user as { role?: "admin" | "user" }).role ?? "user";
       }
       return token;
     },

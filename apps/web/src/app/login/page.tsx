@@ -17,13 +17,15 @@ export default function LoginPage() {
     setLoading(true);
     setError("");
     const res = await signIn("credentials", {
-      username,
+      username: username.trim(),
       password,
       redirect: false,
     });
     setLoading(false);
     if (res?.error) {
-      setError("Invalid name or password");
+      setError(
+        "Invalid name or password. Use Admin-1 / Pwd-11, or check AUTH_USERNAME and AUTH_PASSWORD on Railway."
+      );
       return;
     }
     router.push(params.get("callbackUrl") ?? "/");

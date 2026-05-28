@@ -1,12 +1,13 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "./auth";
 
+/** Admin credentials — override with AUTH_USERNAME + AUTH_PASSWORD on Railway */
 export function getAdminCredentials() {
-  const username = process.env.AUTH_USERNAME ?? process.env.AUTH_EMAIL;
-  const password = process.env.AUTH_PASSWORD;
-  if (!username || !password) {
-    throw new Error("AUTH_USERNAME and AUTH_PASSWORD must be set");
-  }
+  const username =
+    process.env.AUTH_USERNAME?.trim() ||
+    process.env.AUTH_EMAIL?.trim() ||
+    "Admin-1";
+  const password = process.env.AUTH_PASSWORD?.trim() || "Pwd-11";
   return { username, password };
 }
 
