@@ -1,6 +1,7 @@
 import { GoogleGenAI } from "@google/genai";
 import {
   extractedRecipeSchema,
+  toYouTubeWatchUrl,
   type ExtractedRecipe,
 } from "@recipe-planner/shared";
 
@@ -31,6 +32,17 @@ function parseJsonResponse(raw: string): Record<string, unknown> {
   return JSON.parse(json) as Record<string, unknown>;
 }
 
+function geminiErrorMessage(err: unknown): string {
+  const raw = err instanceof Error ? err.message : String(err);
+  if (raw.includes("API key")) {
+    return `Gemini API key error: check GEMINI_API_KEY on the worker. ${raw}`;
+  }
+  if (raw.includes("404") || raw.toLowerCase().includes("not found")) {
+    return `Gemini model or video not found (${getGeminiModel()}). Try GEMINI_MODEL=gemini-2.0-flash. ${raw}`;
+  }
+  return `Gemini failed: ${raw}`;
+}
+
 export async function extractRecipeFromYouTubeWithGemini(
   sourceUrl: string
 ): Promise<{ extracted: ExtractedRecipe; transcript: string }> {
@@ -39,56 +51,70 @@ export async function extractRecipeFromYouTubeWithGemini(
     throw new Error("GEMINI_API_KEY is required for Gemini YouTube processing");
   }
 
+  const watchUrl = toYouTubeWatchUrl(sourceUrl);
   const ai = new GoogleGenAI({ apiKey });
   const model = getGeminiModel();
 
-  const response = await ai.models.generateContent({
-    model,
-    contents: [
-      {
-        role: "user",
-        parts: [
-          {
-            fileData: {
-              fileUri: sourceUrl,
-              mimeType: "video/*",
+  let response;
+  try {
+    response = await ai.models.generateContent({
+      model,
+      contents: [
+        {
+          role: "user",
+          parts: [
+            {
+              fileData: {
+                fileUri: watchUrl,
+                mimeType: "video/*",
+              },
             },
-          },
-          { text: RECIPE_PROMPT },
-        ],
+            { text: RECIPE_PROMPT },
+          ],
+        },
+      ],
+      config: {
+        responseMimeType: "application/json",
       },
-    ],
-    config: {
-      responseMimeType: "application/json",
-    },
-  });
+    });
+  } catch (err) {
+    throw new Error(geminiErrorMessage(err));
+  }
 
   const text = response.text;
   if (!text) {
-    throw new Error("Gemini returned an empty response for this video");
+    throw new Error(
+      "Gemini returned an empty response — video may be private or unsupported"
+    );
   }
 
-  const parsed = parseJsonResponse(text);
-  const rawTranscript =
-    typeof parsed.transcript === "string" ? parsed.transcript : "";
-  const { transcript: _t, ...recipeFields } = parsed;
-  const extracted = extractedRecipeSchema.parse(recipeFields);
+  try {
+    const parsed = parseJsonResponse(text);
+    const rawTranscript =
+      typeof parsed.transcript === "string" ? parsed.transcript : "";
+    const { transcript: _t, ...recipeFields } = parsed;
+    const extracted = extractedRecipeSchema.parse(recipeFields);
 
-  const transcript =
-    rawTranscript.trim() ||
-    [
-      extracted.name,
-      "",
-      "Ingredients:",
-      ...extracted.ingredients.map((i) =>
-        [i.quantity, i.unit, i.name, i.notes ? `(${i.notes})` : ""]
-          .filter(Boolean)
-          .join(" ")
-      ),
-      "",
-      "Steps:",
-      ...extracted.steps.map((s) => `${s.order}. ${s.text}`),
-    ].join("\n");
+    const transcript =
+      rawTranscript.trim() ||
+      [
+        extracted.name,
+        "",
+        "Ingredients:",
+        ...extracted.ingredients.map((i) =>
+          [i.quantity, i.unit, i.name, i.notes ? `(${i.notes})` : ""]
+            .filter(Boolean)
+            .join(" ")
+        ),
+        "",
+        "Steps:",
+        ...extracted.steps.map((s) => `${s.order}. ${s.text}`),
+      ].join("\n");
 
-  return { extracted, transcript };
+    return { extracted, transcript };
+  } catch (err) {
+    throw new Error(
+      `Gemini returned invalid recipe JSON: ${err instanceof Error ? err.message : String(err)}`
+    );
+  }
 }

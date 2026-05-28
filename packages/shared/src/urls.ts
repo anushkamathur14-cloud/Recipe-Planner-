@@ -24,6 +24,25 @@ export function isInstagramUrl(url: string): boolean {
   return extractInstagramUrls(url).length > 0;
 }
 
+/** Canonical watch URL for Gemini / yt-dlp (youtu.be → youtube.com/watch). */
+export function toYouTubeWatchUrl(url: string): string {
+  try {
+    const parsed = new URL(url.trim());
+    const host = parsed.hostname.replace(/^www\./, "");
+    if (host === "youtu.be") {
+      const id = parsed.pathname.replace(/^\//, "").split("/")[0];
+      if (id) return `https://www.youtube.com/watch?v=${id}`;
+    }
+    if (host === "youtube.com" || host === "m.youtube.com") {
+      const v = parsed.searchParams.get("v");
+      if (v) return `https://www.youtube.com/watch?v=${v}`;
+    }
+  } catch {
+    // fall through
+  }
+  return url.trim();
+}
+
 export function normalizeSourceUrl(url: string): string {
   try {
     const parsed = new URL(url.trim());

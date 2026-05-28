@@ -10,6 +10,7 @@ import {
   extractRecipeFromYouTubeWithGemini,
   hasGeminiApiKey,
 } from "./gemini-youtube";
+import { formatImportError } from "./import-errors";
 
 export async function processImportJob(jobId: string): Promise<void> {
   const job = await prisma.importJob.findUnique({
@@ -39,35 +40,19 @@ export async function processImportJob(jobId: string): Promise<void> {
     });
   }
 
-  if (job.type === "youtube_url" && hasGeminiApiKey()) {
-    try {
-      await processYouTubeWithGemini(jobId, job.sourceUrl, job.recipeId);
-      return;
-    } catch (err) {
-      console.warn(
-        `Gemini failed for ${job.sourceUrl}, falling back to OpenAI:`,
-        err
-      );
-    }
+  if (job.type === "youtube_url") {
+    await processYouTubeJob(jobId, job.sourceUrl, job.recipeId);
+    return;
   }
 
   let audioPath: string | null = null;
 
   try {
-    let transcript: string | null = null;
+    await updateProgress(jobId, "Downloading audio");
+    audioPath = await downloadAudio(job.sourceUrl);
 
-    if (job.type === "youtube_url") {
-      await updateProgress(jobId, "Checking YouTube captions");
-      transcript = await tryYouTubeCaptions(job.sourceUrl);
-    }
-
-    if (!transcript) {
-      await updateProgress(jobId, "Downloading audio");
-      audioPath = await downloadAudio(job.sourceUrl);
-
-      await updateProgress(jobId, "Transcribing with Whisper");
-      transcript = await transcribeAudio(audioPath);
-    }
+    await updateProgress(jobId, "Transcribing with Whisper");
+    const transcript = await transcribeAudio(audioPath);
 
     await updateProgress(jobId, "Extracting recipe");
     const extracted = await extractRecipeFromTranscript(
@@ -78,10 +63,94 @@ export async function processImportJob(jobId: string): Promise<void> {
     await saveRecipeResult(job.recipeId, extracted, transcript);
     await completeJob(jobId);
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
+    const message = formatImportError(err, {
+      geminiConfigured: hasGeminiApiKey(),
+    });
     await failJob(jobId, job.recipeId, message);
   } finally {
     if (audioPath) await cleanupPath(audioPath);
+  }
+}
+
+async function processYouTubeJob(
+  jobId: string,
+  sourceUrl: string,
+  recipeId: string | null
+) {
+  const geminiOn = hasGeminiApiKey();
+  let geminiError: string | null = null;
+
+  if (geminiOn) {
+    try {
+      await processYouTubeWithGemini(jobId, sourceUrl, recipeId);
+      return;
+    } catch (err) {
+      geminiError =
+        err instanceof Error ? err.message : String(err);
+      console.warn(`Gemini failed for ${sourceUrl}:`, geminiError);
+      await updateProgress(jobId, "Gemini failed — trying captions");
+    }
+  }
+
+  try {
+    await updateProgress(jobId, "Checking YouTube captions");
+    const transcript = await tryYouTubeCaptions(sourceUrl);
+
+    if (transcript) {
+      await updateProgress(jobId, "Extracting recipe from captions");
+      const extracted = await extractRecipeFromTranscript(
+        transcript,
+        sourceUrl
+      );
+      await saveRecipeResult(recipeId, extracted, transcript);
+      await completeJob(jobId);
+      return;
+    }
+
+    if (geminiOn) {
+      await failJob(
+        jobId,
+        recipeId,
+        geminiError
+          ? `${geminiError} Captions were not available for this video.`
+          : formatImportError(new Error("Captions not available"), {
+              geminiConfigured: true,
+            })
+      );
+      return;
+    }
+
+    if (!process.env.OPENAI_API_KEY) {
+      await failJob(
+        jobId,
+        recipeId,
+        "Set GEMINI_API_KEY (recommended) or OPENAI_API_KEY on the worker."
+      );
+      return;
+    }
+
+    let audioPath: string | null = null;
+    try {
+      await updateProgress(jobId, "Downloading audio (yt-dlp)");
+      audioPath = await downloadAudio(sourceUrl);
+      await updateProgress(jobId, "Transcribing with Whisper");
+      const whisperTranscript = await transcribeAudio(audioPath);
+      await updateProgress(jobId, "Extracting recipe");
+      const extracted = await extractRecipeFromTranscript(
+        whisperTranscript,
+        sourceUrl
+      );
+      await saveRecipeResult(recipeId, extracted, whisperTranscript);
+      await completeJob(jobId);
+    } finally {
+      if (audioPath) await cleanupPath(audioPath);
+    }
+  } catch (err) {
+    await failJob(
+      jobId,
+      recipeId,
+      formatImportError(err, { geminiConfigured: geminiOn })
+    );
   }
 }
 

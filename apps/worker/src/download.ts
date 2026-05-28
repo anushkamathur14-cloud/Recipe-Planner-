@@ -3,6 +3,7 @@ import { promisify } from "util";
 import fs from "fs/promises";
 import path from "path";
 import os from "os";
+import { toYouTubeWatchUrl } from "@recipe-planner/shared";
 
 const execFileAsync = promisify(execFile);
 
@@ -11,26 +12,36 @@ const MAX_DURATION_SEC = parseInt(process.env.MAX_VIDEO_DURATION_SEC ?? "1200", 
 export async function downloadAudio(url: string): Promise<string> {
   const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "recipe-planner-"));
   const outputTemplate = path.join(tmpDir, "audio.%(ext)s");
+  const watchUrl = toYouTubeWatchUrl(url);
+
+  const args = [
+    "-x",
+    "--audio-format",
+    "mp3",
+    "--audio-quality",
+    "5",
+    "--no-playlist",
+    "--download-sections",
+    `*0-${MAX_DURATION_SEC}`,
+    "--js-runtimes",
+    "node",
+    "--extractor-args",
+    "youtube:player_client=android,web",
+    "-o",
+    outputTemplate,
+    watchUrl,
+  ];
+
+  const cookiesFile = process.env.YT_DLP_COOKIES_FILE?.trim();
+  if (cookiesFile) {
+    args.splice(0, 0, "--cookies", cookiesFile);
+  }
 
   try {
-    await execFileAsync(
-      "yt-dlp",
-      [
-        "-x",
-        "--audio-format",
-        "mp3",
-        "--audio-quality",
-        "5",
-        "--no-playlist",
-        // yt-dlp has no --max-duration; cap length for Whisper (first N seconds)
-        "--download-sections",
-        `*0-${MAX_DURATION_SEC}`,
-        "-o",
-        outputTemplate,
-        url,
-      ],
-      { timeout: 600000, maxBuffer: 10 * 1024 * 1024 }
-    );
+    await execFileAsync("yt-dlp", args, {
+      timeout: 600000,
+      maxBuffer: 10 * 1024 * 1024,
+    });
   } catch (err) {
     await fs.rm(tmpDir, { recursive: true, force: true });
     throw new Error(
