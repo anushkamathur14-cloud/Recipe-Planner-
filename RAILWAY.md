@@ -40,14 +40,22 @@ If you never see **Redeploy**, GitHub may not be connected: **Settings → Sourc
 
 ### Create database tables (once)
 
-From your Mac, with Railway Postgres **public URL** (or `railway connect`):
+**Option A — automatic:** Redeploy the web service. On startup it runs `prisma db push` when `DATABASE_URL` is set.
+
+**Option B — trigger now** (after deploy with `/api/setup/db-push`):
 
 ```bash
-cd "/path/to/Recipe Planner"
-DATABASE_URL="postgresql://..." npm run db:push
+curl -X POST "https://YOUR-WEB-URL.up.railway.app/api/setup/db-push" \
+  -H "x-setup-secret: Pwd-11"
 ```
 
-Until this runs, the site may show “tables are missing” instead of crashing.
+Use your real `AUTH_PASSWORD` instead of `Pwd-11`.
+
+**Option C — local:**
+
+```bash
+DATABASE_URL="postgresql://..." npm run db:push
+```
 
 ## Verify the right commit built
 

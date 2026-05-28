@@ -31,9 +31,9 @@ COPY apps/worker/tsconfig.json ./apps/worker/
 COPY apps/worker/src ./apps/worker/src
 COPY apps/web ./apps/web
 COPY seeds ./seeds
-COPY scripts/prisma-generate.cjs scripts/docker-build.sh scripts/docker-start.sh ./scripts/
+COPY scripts/prisma-generate.cjs scripts/docker-build.sh scripts/docker-start.sh scripts/db-push-deploy.sh ./scripts/
 
-RUN chmod +x scripts/docker-build.sh scripts/docker-start.sh \
+RUN chmod +x scripts/docker-build.sh scripts/docker-start.sh scripts/db-push-deploy.sh \
   && NEXT_TELEMETRY_DISABLED=1 scripts/docker-build.sh
 
 ENV NODE_ENV=production
