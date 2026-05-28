@@ -1,4 +1,3 @@
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -9,10 +8,9 @@ export default async function ImportLayout({
   children: React.ReactNode;
 }) {
   const session = await getServerSession(authOptions);
-  const pathname = (await headers()).get("x-pathname") ?? "/import/youtube";
 
   if (!session?.user?.id) {
-    redirect(`/login?callbackUrl=${encodeURIComponent(pathname)}`);
+    redirect("/login?callbackUrl=/import/youtube");
   }
 
   if (session.user.role !== "admin") {

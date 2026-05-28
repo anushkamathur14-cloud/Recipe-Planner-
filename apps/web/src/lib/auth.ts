@@ -2,15 +2,11 @@ import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "@recipe-planner/db";
 import { adminEmailForUsername, getAdminCredentials } from "./admin";
-import { getAuthSecret } from "./auth-secret";
-
-const useSecureCookies =
-  process.env.NEXTAUTH_URL?.startsWith("https://") === true ||
-  process.env.NODE_ENV === "production";
+import { getAuthSecret, useSecureAuthCookies } from "./auth-secret";
 
 export const authOptions: NextAuthOptions = {
   secret: getAuthSecret(),
-  useSecureCookies,
+  useSecureCookies: useSecureAuthCookies(),
   providers: [
     CredentialsProvider({
       id: "credentials",

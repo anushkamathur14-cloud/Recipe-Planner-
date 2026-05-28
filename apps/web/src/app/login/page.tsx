@@ -1,16 +1,29 @@
 "use client";
 
-import { signIn } from "next-auth/react";
-import { useState } from "react";
+import { signIn, useSession } from "next-auth/react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 export default function LoginPage() {
   const params = useSearchParams();
+  const { data: session, status } = useSession();
   const [username, setUsername] = useState("Admin-1");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const callbackUrl = params.get("callbackUrl") ?? "/";
+
+  useEffect(() => {
+    if (
+      status === "authenticated" &&
+      session?.user?.role === "admin" &&
+      callbackUrl.startsWith("/")
+    ) {
+      window.location.replace(callbackUrl);
+    }
+  }, [status, session, callbackUrl]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -42,13 +55,28 @@ export default function LoginPage() {
 
     if (res?.error) {
       setError(
-        "Credentials OK but session failed. Set NEXTAUTH_URL to your Railway web URL and NEXTAUTH_SECRET on the web service."
+        "Credentials OK but session failed. Set NEXTAUTH_URL to https://recipe-plannerweb-production.up.railway.app and NEXTAUTH_SECRET on the web service.",
       );
       return;
     }
 
-    const dest = params.get("callbackUrl") ?? "/";
-    window.location.href = dest.startsWith("/") ? dest : "/";
+    window.location.replace(callbackUrl.startsWith("/") ? callbackUrl : "/");
+  }
+
+  if (status === "loading") {
+    return (
+      <div className="container" style={{ maxWidth: 420 }}>
+        <p className="muted">Checking session…</p>
+      </div>
+    );
+  }
+
+  if (status === "authenticated" && session?.user?.role === "admin") {
+    return (
+      <div className="container" style={{ maxWidth: 420 }}>
+        <p className="muted">Already signed in. Redirecting…</p>
+      </div>
+    );
   }
 
   return (
