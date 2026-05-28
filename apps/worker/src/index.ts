@@ -1,6 +1,7 @@
 import http from "http";
 import { prisma, ImportJobStatus } from "@recipe-planner/db";
 import { processImportJob } from "./process-job";
+import { hasGeminiApiKey } from "./gemini-youtube";
 
 const POLL_MS = parseInt(process.env.WORKER_POLL_MS ?? "3000", 10);
 const CONCURRENCY = parseInt(process.env.WORKER_CONCURRENCY ?? "1", 10);
@@ -16,6 +17,8 @@ function healthPayload() {
     ready,
     hasDatabase: Boolean(process.env.DATABASE_URL),
     hasOpenAi: Boolean(process.env.OPENAI_API_KEY),
+    hasGemini: hasGeminiApiKey(),
+    youtubeProcessor: hasGeminiApiKey() ? "gemini" : "openai",
   };
 }
 
@@ -41,7 +44,6 @@ function startHealthServer() {
     });
 }
 
-// Start health server immediately so Railway healthchecks pass during boot
 startHealthServer();
 
 async function poll() {
@@ -69,9 +71,19 @@ async function main() {
     console.error("DATABASE_URL is required — worker idle until set");
     return;
   }
-  if (!process.env.OPENAI_API_KEY) {
-    console.error("OPENAI_API_KEY is required — worker idle until set");
+
+  const hasOpenAi = Boolean(process.env.OPENAI_API_KEY);
+  if (!hasOpenAi && !hasGeminiApiKey()) {
+    console.error(
+      "OPENAI_API_KEY or GEMINI_API_KEY is required — worker idle until set"
+    );
     return;
+  }
+
+  if (!hasOpenAi) {
+    console.warn(
+      "OPENAI_API_KEY not set — Instagram imports and Gemini fallback will not work"
+    );
   }
 
   try {
@@ -82,7 +94,9 @@ async function main() {
   }
 
   ready = true;
-  console.log("Recipe Planner worker started");
+  console.log(
+    `Recipe Planner worker started (YouTube: ${hasGeminiApiKey() ? "Gemini" : "OpenAI"})`
+  );
   setInterval(() => {
     poll().catch((e) => console.error("Poll error:", e));
   }, POLL_MS);

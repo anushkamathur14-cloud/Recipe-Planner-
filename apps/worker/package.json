@@ -8,6 +8,7 @@
     "build": "tsc"
   },
   "dependencies": {
+    "@google/genai": "^2.7.0",
     "@recipe-planner/db": "*",
     "@recipe-planner/shared": "*",
     "openai": "^4.103.0",

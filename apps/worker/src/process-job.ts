@@ -1,10 +1,15 @@
 import { prisma, RecipeStatus, ImportJobStatus } from "@recipe-planner/db";
+import type { ExtractedRecipe } from "@recipe-planner/shared";
 import { downloadAudio, cleanupPath } from "./download";
 import {
   transcribeAudio,
   extractRecipeFromTranscript,
 } from "./openai";
 import { tryYouTubeCaptions } from "./youtube-transcript";
+import {
+  extractRecipeFromYouTubeWithGemini,
+  hasGeminiApiKey,
+} from "./gemini-youtube";
 
 export async function processImportJob(jobId: string): Promise<void> {
   const job = await prisma.importJob.findUnique({
@@ -34,6 +39,18 @@ export async function processImportJob(jobId: string): Promise<void> {
     });
   }
 
+  if (job.type === "youtube_url" && hasGeminiApiKey()) {
+    try {
+      await processYouTubeWithGemini(jobId, job.sourceUrl, job.recipeId);
+      return;
+    } catch (err) {
+      console.warn(
+        `Gemini failed for ${job.sourceUrl}, falling back to OpenAI:`,
+        err
+      );
+    }
+  }
+
   let audioPath: string | null = null;
 
   try {
@@ -58,37 +75,60 @@ export async function processImportJob(jobId: string): Promise<void> {
       job.sourceUrl
     );
 
-    if (job.recipeId) {
-      await prisma.recipe.update({
-        where: { id: job.recipeId },
-        data: {
-          name: extracted.name,
-          servings: extracted.servings,
-          ingredients: extracted.ingredients,
-          steps: extracted.steps,
-          transcript,
-          rawExtraction: extracted,
-          confidence: extracted.confidence,
-          status: RecipeStatus.ready,
-          errorMessage: null,
-        },
-      });
-    }
-
-    await prisma.importJob.update({
-      where: { id: jobId },
-      data: {
-        status: ImportJobStatus.completed,
-        progress: "Done",
-        completedAt: new Date(),
-      },
-    });
+    await saveRecipeResult(job.recipeId, extracted, transcript);
+    await completeJob(jobId);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     await failJob(jobId, job.recipeId, message);
   } finally {
     if (audioPath) await cleanupPath(audioPath);
   }
+}
+
+async function processYouTubeWithGemini(
+  jobId: string,
+  sourceUrl: string,
+  recipeId: string | null
+) {
+  await updateProgress(jobId, "Analyzing video with Gemini");
+  const { extracted, transcript } =
+    await extractRecipeFromYouTubeWithGemini(sourceUrl);
+  await saveRecipeResult(recipeId, extracted, transcript);
+  await completeJob(jobId);
+}
+
+async function saveRecipeResult(
+  recipeId: string | null,
+  extracted: ExtractedRecipe,
+  transcript: string
+) {
+  if (!recipeId) return;
+
+  await prisma.recipe.update({
+    where: { id: recipeId },
+    data: {
+      name: extracted.name,
+      servings: extracted.servings,
+      ingredients: extracted.ingredients,
+      steps: extracted.steps,
+      transcript,
+      rawExtraction: extracted,
+      confidence: extracted.confidence,
+      status: RecipeStatus.ready,
+      errorMessage: null,
+    },
+  });
+}
+
+async function completeJob(jobId: string) {
+  await prisma.importJob.update({
+    where: { id: jobId },
+    data: {
+      status: ImportJobStatus.completed,
+      progress: "Done",
+      completedAt: new Date(),
+    },
+  });
 }
 
 async function updateProgress(jobId: string, progress: string) {

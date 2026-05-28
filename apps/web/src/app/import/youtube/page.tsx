@@ -58,8 +58,9 @@ export default function YouTubeImportPage() {
         <h3>Starter library</h3>
         <p className="muted">
           Import your saved collection (~80 YouTube & Instagram links: Palak
-          Paneer, Dal Makhani, Biryani, etc.). Requires the worker to be
-          running.
+          Paneer, Dal Makhani, Biryani, etc.). YouTube uses Gemini when{" "}
+          <code>GEMINI_API_KEY</code> is set on the worker; otherwise OpenAI
+          Whisper. Requires the worker to be running.
         </p>
         <button
           type="button"

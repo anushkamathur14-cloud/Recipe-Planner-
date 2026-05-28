@@ -2,6 +2,13 @@
 
 ## Worker service (`@recipe-planner/worker`)
 
+| Variable | Purpose |
+|----------|---------|
+| `DATABASE_URL` | Postgres |
+| `GEMINI_API_KEY` | YouTube imports (video → recipe in one step) |
+| `GEMINI_MODEL` | Optional, default `gemini-2.0-flash` |
+| `OPENAI_API_KEY` | Instagram + YouTube fallback |
+
 1. **Settings → Source**
    - Repo: `anushkamathur14-cloud/Recipe-Planner-`
    - Branch: `main`
@@ -13,7 +20,8 @@
 3. **Variables** (required for correct Docker build + runtime)
    - `DEPLOY_TARGET` = `worker`
    - `DATABASE_URL` = *(reference Postgres)*
-   - `OPENAI_API_KEY` = *(your key)*
+   - `GEMINI_API_KEY` = *(from Google AI Studio)*
+   - `OPENAI_API_KEY` = *(optional if using Gemini for YouTube only; required for Instagram)*
 
 4. **Redeploy**
    - Open the service → **Deployments**
