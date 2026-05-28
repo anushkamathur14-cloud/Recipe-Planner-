@@ -1,0 +1,15 @@
+# Fallback when Railway uses Nixpacks instead of Docker (web service)
+[phases.setup]
+nixPkgs = ["nodejs_22", "openssl"]
+
+[phases.install]
+cmds = ["npm ci --ignore-scripts"]
+
+[phases.build]
+cmds = [
+  "npm run db:generate",
+  "npm run build --workspace=@recipe-planner/web",
+]
+
+[start]
+cmd = "npm run start --workspace=@recipe-planner/web"

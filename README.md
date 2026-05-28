@@ -70,8 +70,12 @@ Open [http://localhost:3000](http://localhost:3000) and sign in with `AUTH_EMAIL
 Create a Railway project with:
 
 1. **PostgreSQL** plugin → copy `DATABASE_URL`
-2. **Web service** — root `railway.toml`, set env vars from `.env.example`
-3. **Worker service** — use `railway.worker.toml` as config path or duplicate service with `docker/Dockerfile.worker`
+2. **Web service** — connect GitHub repo, set **Root Directory** to `/` (repo root, not `apps/web`)
+   - **Settings → Build → Builder:** Dockerfile
+   - **Dockerfile path:** `Dockerfile` (or Config file: `railway.toml` / `railway.json`)
+3. **Worker service** — duplicate repo service, set **Dockerfile path:** `Dockerfile.worker` (Config: `railway.worker.toml`)
+
+**Important:** If the service name shows `@recipe-planner/web`, Railway may use Nixpacks by default. Switch the builder to **Dockerfile** and redeploy — do not use `apps/web` as root directory.
 
 Required variables on both services:
 

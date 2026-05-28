@@ -1,0 +1,15 @@
+node_modules
+.next
+.git
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+uploads
+tmp
+coverage
+.idea
+.vscode
+README.md
+assets
