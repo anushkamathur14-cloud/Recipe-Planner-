@@ -5,15 +5,21 @@ import {
   ImportJobType,
   ImportJobStatus,
 } from "@recipe-planner/db";
-import { isInstagramUrl, isYouTubeUrl } from "@recipe-planner/shared";
+import {
+  isInstagramUrl,
+  isYouTubeUrl,
+  normalizeSourceUrl,
+} from "@recipe-planner/shared";
 
 export async function enqueueUrlImport(
   userId: string,
-  url: string
+  url: string,
+  options?: { name?: string }
 ): Promise<{ recipeId: string; jobId: string; skipped: boolean }> {
-  const sourceType = isYouTubeUrl(url)
+  const normalizedUrl = normalizeSourceUrl(url);
+  const sourceType = isYouTubeUrl(normalizedUrl)
     ? SourceType.youtube
-    : isInstagramUrl(url)
+    : isInstagramUrl(normalizedUrl)
       ? SourceType.instagram
       : null;
 
@@ -22,7 +28,7 @@ export async function enqueueUrlImport(
   }
 
   const existing = await prisma.recipe.findUnique({
-    where: { userId_sourceUrl: { userId, sourceUrl: url } },
+    where: { userId_sourceUrl: { userId, sourceUrl: normalizedUrl } },
   });
 
   if (existing) {
@@ -32,7 +38,8 @@ export async function enqueueUrlImport(
   const recipe = await prisma.recipe.create({
     data: {
       userId,
-      sourceUrl: url,
+      name: options?.name ?? "Untitled Recipe",
+      sourceUrl: normalizedUrl,
       sourceType,
       status: RecipeStatus.pending,
     },
@@ -46,7 +53,7 @@ export async function enqueueUrlImport(
         sourceType === SourceType.youtube
           ? ImportJobType.youtube_url
           : ImportJobType.instagram_url,
-      sourceUrl: url,
+      sourceUrl: normalizedUrl,
       status: ImportJobStatus.queued,
     },
   });

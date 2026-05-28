@@ -10,6 +10,23 @@ export default function YouTubeImportPage() {
     { url: string; recipeId: string; skipped: boolean }[] | null
   >(null);
   const [error, setError] = useState("");
+  const [seedSummary, setSeedSummary] = useState<string | null>(null);
+
+  async function importStarterLibrary() {
+    setLoading(true);
+    setError("");
+    setSeedSummary(null);
+    const res = await fetch("/api/import/seed", { method: "POST" });
+    const data = await res.json();
+    setLoading(false);
+    if (!res.ok) {
+      setError(data.error ?? "Starter import failed");
+      return;
+    }
+    setSeedSummary(
+      `Queued ${data.queued} recipes (${data.skipped} already imported, ${data.failed} failed). Worker will transcribe them.`
+    );
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -37,6 +54,24 @@ export default function YouTubeImportPage() {
         Paste one or more YouTube URLs (one per line). The worker will
         transcribe and extract a structured recipe.
       </p>
+      <div className="card">
+        <h3>Starter library</h3>
+        <p className="muted">
+          Import your saved collection (~80 YouTube & Instagram links: Palak
+          Paneer, Dal Makhani, Biryani, etc.). Requires the worker to be
+          running.
+        </p>
+        <button
+          type="button"
+          className="btn"
+          disabled={loading}
+          onClick={importStarterLibrary}
+        >
+          {loading ? "Queueing…" : "Import starter library"}
+        </button>
+        {seedSummary && <p className="muted" style={{ marginTop: 12 }}>{seedSummary}</p>}
+      </div>
+
       <form onSubmit={onSubmit} className="card">
         <label htmlFor="urls">YouTube URLs</label>
         <textarea

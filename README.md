@@ -47,11 +47,13 @@ npm run dev:worker
 
 Open [http://localhost:3000](http://localhost:3000) and sign in with `AUTH_USERNAME` / `AUTH_PASSWORD` (default admin: `Admin-1` / `Pwd-11`).
 
+**Seed your library:** After sign-in, go to **YouTube** import → **Import starter library**, or run `node scripts/seed-recipes.mjs` locally (requires `DATABASE_URL` + worker).
+
 ## Features
 
 | Route | Description |
 |-------|-------------|
-| `/import/youtube` | Paste YouTube URLs → transcribe → structured recipe |
+| `/import/youtube` | Paste YouTube URLs or **Import starter library** (~80 saved links) |
 | `/import/instagram` | Paste IG URLs or upload Meta export ZIP |
 | `/recipes` | Recipe library with editor |
 | `/recipes/[id]` | View recipe, edit, LLM Q&A |
