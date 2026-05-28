@@ -45,7 +45,7 @@ npm run dev
 npm run dev:worker
 ```
 
-Open [http://localhost:3000](http://localhost:3000) and sign in with `AUTH_EMAIL` / `AUTH_PASSWORD`.
+Open [http://localhost:3000](http://localhost:3000) and sign in with `AUTH_USERNAME` / `AUTH_PASSWORD` (default admin: `Admin-1` / `Pwd-11`).
 
 ## Features
 
@@ -87,7 +87,7 @@ Required variables on both services:
 - `OPENAI_API_KEY`
 - `NEXTAUTH_SECRET`
 - `NEXTAUTH_URL` (your public web URL)
-- `AUTH_EMAIL` / `AUTH_PASSWORD`
+- `AUTH_USERNAME` / `AUTH_PASSWORD` (admin only — controls who can import/transcribe)
 
 Worker only needs DB + OpenAI keys (no NextAuth).
 

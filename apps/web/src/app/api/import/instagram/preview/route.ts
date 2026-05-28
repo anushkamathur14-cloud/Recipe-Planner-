@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import AdmZip from "adm-zip";
-import { requireUser } from "@/lib/session";
+import { requireAdmin } from "@/lib/admin";
 import { parseConversationJson } from "@recipe-planner/shared";
 
 function findMessageJson(zip: AdmZip, folderName: string): unknown | null {
@@ -29,7 +29,7 @@ function listInboxFolders(zip: AdmZip): string[] {
 
 export async function POST(req: Request) {
   try {
-    await requireUser();
+    await requireAdmin();
     const form = await req.formData();
     const file = form.get("file") as File | null;
     if (!file) {

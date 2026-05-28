@@ -1,12 +1,15 @@
 import Link from "next/link";
 import { prisma } from "@recipe-planner/db";
-import { getSessionUser } from "@/lib/session";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { StatusBadge } from "@/components/StatusBadge";
 
 export default async function DashboardPage() {
-  const user = await getSessionUser();
+  const session = await getServerSession(authOptions);
+  const user = session?.user;
   if (!user?.id) redirect("/login");
+  const isAdmin = user.role === "admin";
 
   const [recipes, jobs] = await Promise.all([
     prisma.recipe.findMany({
@@ -48,16 +51,20 @@ export default async function DashboardPage() {
             View all recipes
           </Link>
         </div>
-        <div className="card">
-          <h3>Quick import</h3>
-          <p className="muted">Paste YouTube or Instagram links to transcribe.</p>
-          <Link href="/import/youtube" className="btn" style={{ marginRight: 8 }}>
-            YouTube
-          </Link>
-          <Link href="/import/instagram" className="btn btn-secondary">
-            Instagram
-          </Link>
-        </div>
+        {isAdmin && (
+          <div className="card">
+            <h3>Quick import (admin)</h3>
+            <p className="muted">
+              Paste YouTube or Instagram links to transcribe.
+            </p>
+            <Link href="/import/youtube" className="btn" style={{ marginRight: 8 }}>
+              YouTube
+            </Link>
+            <Link href="/import/instagram" className="btn btn-secondary">
+              Instagram
+            </Link>
+          </div>
+        )}
       </div>
 
       <h2>Recent recipes</h2>

@@ -5,14 +5,14 @@ import {
   ImportJobStatus,
   ImportJobType,
 } from "@recipe-planner/db";
-import { requireUser } from "@/lib/session";
+import { requireAdmin } from "@/lib/admin";
 
 export async function POST(
   _req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const user = await requireUser();
+    const user = await requireAdmin();
     const { id } = await params;
 
     const recipe = await prisma.recipe.findFirst({

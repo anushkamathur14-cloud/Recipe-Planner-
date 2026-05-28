@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@recipe-planner/db";
-import { requireUser } from "@/lib/session";
+import { requireAdmin } from "@/lib/admin";
 import { z } from "zod";
 
 const configSchema = z.object({
@@ -11,7 +11,7 @@ const configSchema = z.object({
 
 export async function GET() {
   try {
-    const user = await requireUser();
+    const user = await requireAdmin();
     const configs = await prisma.igThreadConfig.findMany({
       where: { userId: user.id },
       orderBy: { displayName: "asc" },
@@ -28,7 +28,7 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    const user = await requireUser();
+    const user = await requireAdmin();
     const body = configSchema.parse(await req.json());
 
     const config = await prisma.igThreadConfig.upsert({
@@ -62,7 +62,7 @@ export async function POST(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    const user = await requireUser();
+    const user = await requireAdmin();
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
     if (!id) {

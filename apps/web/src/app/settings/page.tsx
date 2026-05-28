@@ -88,9 +88,8 @@ export default function SettingsPage() {
         <h3>Environment</h3>
         <p className="muted">
           Required: DATABASE_URL, OPENAI_API_KEY, NEXTAUTH_SECRET, NEXTAUTH_URL,
-          AUTH_EMAIL, AUTH_PASSWORD. Optional: GOOGLE_CLIENT_ID,
-          GOOGLE_CLIENT_SECRET. Run the worker service alongside the web app for
-          transcription jobs.
+          AUTH_USERNAME, AUTH_PASSWORD. Run the worker service alongside the web
+          app for transcription jobs.
         </p>
       </div>
     </div>

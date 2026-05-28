@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@recipe-planner/db";
-import { getSessionUser } from "@/lib/session";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { parseIngredients, parseSteps } from "@recipe-planner/shared";
 import { StatusBadge } from "@/components/StatusBadge";
 import { RecipeEditor } from "@/components/RecipeEditor";
@@ -13,8 +14,10 @@ export default async function RecipeDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const user = await getSessionUser();
+  const session = await getServerSession(authOptions);
+  const user = session?.user;
   if (!user?.id) redirect("/login");
+  const isAdmin = user.role === "admin";
   const { id } = await params;
 
   const recipe = await prisma.recipe.findFirst({
@@ -40,9 +43,10 @@ export default async function RecipeDetailPage({
       {recipe.errorMessage && (
         <p className="error">{recipe.errorMessage}</p>
       )}
-      {(recipe.status === "failed" || recipe.status === "pending") && (
-        <RetryButton recipeId={recipe.id} />
-      )}
+      {isAdmin &&
+        (recipe.status === "failed" || recipe.status === "pending") && (
+          <RetryButton recipeId={recipe.id} />
+        )}
 
       <div className="grid-2">
         <div className="card">

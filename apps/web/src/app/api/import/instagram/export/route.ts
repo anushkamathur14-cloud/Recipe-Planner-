@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import AdmZip from "adm-zip";
 import { prisma, ImportJobStatus, ImportJobType } from "@recipe-planner/db";
-import { requireUser } from "@/lib/session";
+import { requireAdmin } from "@/lib/admin";
 import { enqueueUrlImport } from "@/lib/import";
 import {
   parseConversationJson,
@@ -35,7 +35,7 @@ function listInboxFolders(zip: AdmZip): string[] {
 
 export async function POST(req: Request) {
   try {
-    const user = await requireUser();
+    const user = await requireAdmin();
     const form = await req.formData();
     const file = form.get("file") as File | null;
     const selectedRaw = form.get("threads") as string | null;

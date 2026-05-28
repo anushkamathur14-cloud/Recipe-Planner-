@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { requireUser } from "@/lib/session";
+import { requireAdmin } from "@/lib/admin";
 import { enqueueUrlImport } from "@/lib/import";
 import { normalizeYouTubeUrls } from "@recipe-planner/shared";
 
 export async function POST(req: Request) {
   try {
-    const user = await requireUser();
+    const user = await requireAdmin();
     const body = await req.json();
     const urls = normalizeYouTubeUrls(body.urls ?? "");
 
@@ -25,7 +25,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ results });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Import failed";
-    const status = message === "Unauthorized" ? 401 : 500;
+    const status =
+      message === "Unauthorized" || message === "Admin access required"
+        ? 403
+        : 500;
     return NextResponse.json({ error: message }, { status });
   }
 }

@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { requireUser } from "@/lib/session";
+import { requireAdmin } from "@/lib/admin";
 import { enqueueUrlImport } from "@/lib/import";
 import { extractInstagramUrls } from "@recipe-planner/shared";
 
 export async function POST(req: Request) {
   try {
-    const user = await requireUser();
+    const user = await requireAdmin();
     const body = await req.json();
     const input = (body.urls ?? body.url ?? "") as string;
     const urls = extractInstagramUrls(input);
