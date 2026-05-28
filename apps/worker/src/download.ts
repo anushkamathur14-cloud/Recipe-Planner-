@@ -22,8 +22,9 @@ export async function downloadAudio(url: string): Promise<string> {
         "--audio-quality",
         "5",
         "--no-playlist",
-        "--max-duration",
-        String(MAX_DURATION_SEC),
+        // yt-dlp has no --max-duration; cap length for Whisper (first N seconds)
+        "--download-sections",
+        `*0-${MAX_DURATION_SEC}`,
         "-o",
         outputTemplate,
         url,
