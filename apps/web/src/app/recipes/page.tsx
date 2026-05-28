@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { prisma } from "@recipe-planner/db";
-import { StatusBadge } from "@/components/StatusBadge";
 import { SetupBanner } from "@/components/SetupBanner";
 import { checkDatabase } from "@/lib/setup";
+import { RecipeLibraryTable } from "@/components/RecipeLibraryTable";
 
 export default async function RecipesPage({
   searchParams,
@@ -24,6 +24,10 @@ export default async function RecipesPage({
   return (
     <div className="container">
       <h1>Recipe library</h1>
+      <p className="muted">
+        Change <strong>Cook for</strong> to scale ingredient amounts. When it
+        differs from the recipe&apos;s base serves, two quantity columns appear.
+      </p>
       <p>
         <Link href="/recipes">All</Link>
         {" · "}
@@ -33,38 +37,17 @@ export default async function RecipesPage({
         {" · "}
         <Link href="/recipes?status=failed">Failed</Link>
       </p>
-      {recipes.length === 0 ? (
-        <p className="muted">No recipes yet.</p>
-      ) : (
-        <table className="table card">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Servings</th>
-              <th>Source</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {recipes.map((r) => (
-              <tr key={r.id}>
-                <td>
-                  <Link href={`/recipes/${r.id}`}>{r.name}</Link>
-                </td>
-                <td>{r.servings}</td>
-                <td>
-                  <a href={r.sourceUrl} target="_blank" rel="noreferrer">
-                    {r.sourceType}
-                  </a>
-                </td>
-                <td>
-                  <StatusBadge status={r.status} />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+      <RecipeLibraryTable
+        recipes={recipes.map((r) => ({
+          id: r.id,
+          name: r.name,
+          servings: r.servings,
+          sourceUrl: r.sourceUrl,
+          sourceType: r.sourceType,
+          status: r.status,
+          ingredients: r.ingredients,
+        }))}
+      />
     </div>
   );
 }
