@@ -27,6 +27,28 @@ If you never see **Redeploy**, GitHub may not be connected: **Settings → Sourc
 - Config file: `railway.toml` (default)
 - Do **not** set `DEPLOY_TARGET=worker` on the web service.
 
+### Web variables (required)
+
+| Variable | Example |
+|----------|---------|
+| `DATABASE_URL` | Reference from Postgres plugin |
+| `NEXTAUTH_SECRET` | Long random string (e.g. `openssl rand -base64 32`) |
+| `NEXTAUTH_URL` | `https://recipe-plannerweb-production.up.railway.app` |
+| `AUTH_USERNAME` | `Admin-1` |
+| `AUTH_PASSWORD` | `Pwd-11` |
+| `OPENAI_API_KEY` | Your OpenAI key |
+
+### Create database tables (once)
+
+From your Mac, with Railway Postgres **public URL** (or `railway connect`):
+
+```bash
+cd "/path/to/Recipe Planner"
+DATABASE_URL="postgresql://..." npm run db:push
+```
+
+Until this runs, the site may show “tables are missing” instead of crashing.
+
 ## Verify the right commit built
 
 In **Deployments**, the commit message should include *"Fix worker Railway build"* or newer.

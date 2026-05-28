@@ -2,9 +2,10 @@ import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "@recipe-planner/db";
 import { adminEmailForUsername, getAdminCredentials } from "./admin";
+import { getAuthSecret } from "./setup";
 
 export const authOptions: NextAuthOptions = {
-  secret: process.env.NEXTAUTH_SECRET,
+  secret: getAuthSecret(),
   providers: [
     CredentialsProvider({
       id: "credentials",

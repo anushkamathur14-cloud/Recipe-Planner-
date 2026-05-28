@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { prisma } from "@recipe-planner/db";
 import { StatusBadge } from "@/components/StatusBadge";
+import { SetupBanner } from "@/components/SetupBanner";
+import { checkDatabase } from "@/lib/setup";
 
 export default async function RecipesPage({
   searchParams,
@@ -8,6 +10,11 @@ export default async function RecipesPage({
   searchParams: Promise<{ status?: string }>;
 }) {
   const { status } = await searchParams;
+
+  const db = await checkDatabase();
+  if (!db.ok) {
+    return <SetupBanner message={db.message} />;
+  }
 
   const recipes = await prisma.recipe.findMany({
     where: status ? { status: status as never } : undefined,

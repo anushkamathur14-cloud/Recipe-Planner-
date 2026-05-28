@@ -3,8 +3,22 @@ import { prisma } from "@recipe-planner/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { StatusBadge } from "@/components/StatusBadge";
+import { SetupBanner } from "@/components/SetupBanner";
+import { checkDatabase, getSetupIssues } from "@/lib/setup";
 
 export default async function DashboardPage() {
+  const envIssues = getSetupIssues().filter((i) => !i.includes("derived secret"));
+  const db = await checkDatabase();
+  if (!db.ok) {
+    return (
+      <SetupBanner
+        issues={envIssues}
+        message={db.message}
+        title="Recipe Planner — database not ready"
+      />
+    );
+  }
+
   const session = await getServerSession(authOptions);
   const isAdmin = session?.user?.role === "admin";
 
