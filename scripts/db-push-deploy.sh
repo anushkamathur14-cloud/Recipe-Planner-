@@ -7,11 +7,13 @@ if [ -z "${DATABASE_URL:-}" ]; then
   exit 0
 fi
 
-SCHEMA="packages/db/prisma/schema.prisma"
-if [ ! -f "$SCHEMA" ]; then
-  echo "db-push: schema not found at $SCHEMA"
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$ROOT"
+
+if [ ! -f "packages/db/prisma/schema.prisma" ]; then
+  echo "db-push: schema not found under $ROOT/packages/db/prisma"
   exit 1
 fi
 
-echo "db-push: syncing database schema..."
-npx prisma db push --schema="$SCHEMA" --skip-generate
+echo "db-push: syncing database schema from $ROOT..."
+npm run push --workspace=@recipe-planner/db

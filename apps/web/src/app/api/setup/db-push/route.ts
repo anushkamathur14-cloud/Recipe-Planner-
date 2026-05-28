@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { execSync } from "child_process";
-import { join } from "path";
 import { getAdminCredentials } from "@/lib/admin";
+import { findMonorepoRoot } from "@/lib/monorepo-root";
 
 export const dynamic = "force-dynamic";
 
@@ -21,15 +21,28 @@ export async function POST(req: Request) {
     );
   }
 
-  const schema = join(process.cwd(), "packages/db/prisma/schema.prisma");
+  let root: string;
+  try {
+    root = findMonorepoRoot();
+  } catch (err) {
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : String(err) },
+      { status: 500 },
+    );
+  }
 
   try {
-    execSync(`npx prisma db push --schema="${schema}" --skip-generate`, {
+    execSync("npm run push --workspace=@recipe-planner/db", {
+      cwd: root,
       stdio: "pipe",
       encoding: "utf8",
       env: process.env,
     });
-    return NextResponse.json({ ok: true, message: "Database schema applied." });
+    return NextResponse.json({
+      ok: true,
+      message: "Database schema applied.",
+      root,
+    });
   } catch (err) {
     const message =
       err instanceof Error
@@ -37,6 +50,6 @@ export async function POST(req: Request) {
           ? String((err as { stderr?: string }).stderr ?? err.message)
           : err.message
         : String(err);
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: message, root }, { status: 500 });
   }
 }
