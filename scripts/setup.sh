@@ -3,7 +3,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 echo "==> Installing dependencies"
-npm install
+npm install --ignore-scripts
 
 echo "==> Generating Prisma client"
 npm run db:generate

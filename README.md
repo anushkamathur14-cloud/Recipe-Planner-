@@ -27,6 +27,7 @@ cp .env.example .env
 
 ```bash
 npm install
+npm run db:generate
 npm run db:push
 ```
 

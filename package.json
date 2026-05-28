@@ -9,7 +9,6 @@
     "prisma": "^6.8.2"
   },
   "scripts": {
-    "postinstall": "prisma generate --schema=packages/db/prisma/schema.prisma",
     "dev": "npm run dev --workspace=@recipe-planner/web",
     "dev:worker": "npm run dev --workspace=@recipe-planner/worker",
     "build": "npm run build --workspace=@recipe-planner/db && npm run build --workspaces --if-present",
