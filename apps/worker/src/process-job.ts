@@ -10,6 +10,11 @@ import {
   extractRecipeFromYouTubeWithGemini,
   hasGeminiApiKey,
 } from "./gemini-youtube";
+import {
+  canUseGeminiToday,
+  getGeminiDailyLimit,
+  getGeminiUsageSummary,
+} from "./gemini-usage";
 import { formatImportError } from "./import-errors";
 
 export async function processImportJob(jobId: string): Promise<void> {
@@ -78,53 +83,46 @@ async function processYouTubeJob(
   recipeId: string | null
 ) {
   const geminiOn = hasGeminiApiKey();
-  let geminiError: string | null = null;
-
-  if (geminiOn) {
-    try {
-      await processYouTubeWithGemini(jobId, sourceUrl, recipeId);
-      return;
-    } catch (err) {
-      geminiError =
-        err instanceof Error ? err.message : String(err);
-      console.warn(`Gemini failed for ${sourceUrl}:`, geminiError);
-      await updateProgress(jobId, "Gemini failed — trying captions");
-    }
-  }
 
   try {
-    await updateProgress(jobId, "Checking YouTube captions");
-    const transcript = await tryYouTubeCaptions(sourceUrl);
+    await updateProgress(jobId, "Checking YouTube captions (free)");
+    const captions = await tryYouTubeCaptions(sourceUrl);
 
-    if (transcript) {
+    if (captions) {
       await updateProgress(jobId, "Extracting recipe from captions");
       const extracted = await extractRecipeFromTranscript(
-        transcript,
+        captions,
         sourceUrl
       );
-      await saveRecipeResult(recipeId, extracted, transcript);
+      await saveRecipeResult(recipeId, extracted, captions);
       await completeJob(jobId);
       return;
     }
 
-    if (geminiOn) {
-      await failJob(
+    if (geminiOn && (await canUseGeminiToday())) {
+      try {
+        await processYouTubeWithGemini(jobId, sourceUrl, recipeId);
+        return;
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.warn(`Gemini failed for ${sourceUrl}:`, msg);
+        await updateProgress(jobId, "Gemini failed — trying audio download");
+      }
+    } else if (geminiOn) {
+      const { used, limit } = await getGeminiUsageSummary();
+      await updateProgress(
         jobId,
-        recipeId,
-        geminiError
-          ? `${geminiError} Captions were not available for this video.`
-          : formatImportError(new Error("Captions not available"), {
-              geminiConfigured: true,
-            })
+        `Gemini daily limit reached (${used}/${limit}) — using audio download`
       );
-      return;
     }
 
     if (!process.env.OPENAI_API_KEY) {
       await failJob(
         jobId,
         recipeId,
-        "Set GEMINI_API_KEY (recommended) or OPENAI_API_KEY on the worker."
+        geminiOn
+          ? `Daily Gemini limit (${getGeminiDailyLimit()}/day) may be reached and OPENAI_API_KEY is not set for audio fallback.`
+          : "Set OPENAI_API_KEY on the worker for audio transcription."
       );
       return;
     }
@@ -159,11 +157,15 @@ async function processYouTubeWithGemini(
   sourceUrl: string,
   recipeId: string | null
 ) {
-  await updateProgress(jobId, "Analyzing video with Gemini");
+  const { used, limit, remaining } = await getGeminiUsageSummary();
+  await updateProgress(
+    jobId,
+    `Analyzing with Gemini (${used + 1}/${limit} today, ${Math.max(0, remaining - 1)} left after)`
+  );
   const { extracted, transcript } =
     await extractRecipeFromYouTubeWithGemini(sourceUrl);
   await saveRecipeResult(recipeId, extracted, transcript);
-  await completeJob(jobId);
+  await completeJob(jobId, { usedGemini: true });
 }
 
 async function saveRecipeResult(
@@ -189,13 +191,17 @@ async function saveRecipeResult(
   });
 }
 
-async function completeJob(jobId: string) {
+async function completeJob(
+  jobId: string,
+  opts?: { usedGemini?: boolean }
+) {
   await prisma.importJob.update({
     where: { id: jobId },
     data: {
       status: ImportJobStatus.completed,
-      progress: "Done",
+      progress: opts?.usedGemini ? "Done (Gemini)" : "Done",
       completedAt: new Date(),
+      usedGemini: opts?.usedGemini ?? false,
     },
   });
 }

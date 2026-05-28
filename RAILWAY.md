@@ -5,9 +5,12 @@
 | Variable | Purpose |
 |----------|---------|
 | `DATABASE_URL` | Postgres |
-| `GEMINI_API_KEY` | YouTube imports (video → recipe in one step) |
+| `GEMINI_API_KEY` | YouTube when captions unavailable |
+| `GEMINI_DAILY_LIMIT` | Max Gemini videos per UTC day (default **3**) |
+| `GEMINI_MAX_VIDEO_SEC` | Only analyze first N seconds in Gemini (default **600**) |
 | `GEMINI_MODEL` | Optional, default `gemini-2.0-flash` |
-| `OPENAI_API_KEY` | Instagram + YouTube fallback |
+| `OPENAI_API_KEY` | Instagram/Facebook + YouTube audio fallback |
+| `MAX_VIDEO_DURATION_SEC` | yt-dlp audio cap (default **1200**) |
 
 1. **Settings → Source**
    - Repo: `anushkamathur14-cloud/Recipe-Planner-`

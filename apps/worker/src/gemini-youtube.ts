@@ -54,6 +54,23 @@ export async function extractRecipeFromYouTubeWithGemini(
   const watchUrl = toYouTubeWatchUrl(sourceUrl);
   const ai = new GoogleGenAI({ apiKey });
   const model = getGeminiModel();
+  const maxVideoSec = parseInt(process.env.GEMINI_MAX_VIDEO_SEC ?? "600", 10);
+  const videoEndSec =
+    Number.isFinite(maxVideoSec) && maxVideoSec > 0 ? maxVideoSec : 600;
+
+  const videoPart: {
+    fileData: { fileUri: string; mimeType: string };
+    videoMetadata?: { startOffset: string; endOffset: string };
+  } = {
+    fileData: {
+      fileUri: watchUrl,
+      mimeType: "video/*",
+    },
+    videoMetadata: {
+      startOffset: "0s",
+      endOffset: `${videoEndSec}s`,
+    },
+  };
 
   let response;
   try {
@@ -62,15 +79,7 @@ export async function extractRecipeFromYouTubeWithGemini(
       contents: [
         {
           role: "user",
-          parts: [
-            {
-              fileData: {
-                fileUri: watchUrl,
-                mimeType: "video/*",
-              },
-            },
-            { text: RECIPE_PROMPT },
-          ],
+          parts: [videoPart, { text: RECIPE_PROMPT }],
         },
       ],
       config: {

@@ -2,6 +2,7 @@ import http from "http";
 import { prisma, ImportJobStatus } from "@recipe-planner/db";
 import { processImportJob } from "./process-job";
 import { hasGeminiApiKey } from "./gemini-youtube";
+import { getGeminiDailyLimit, getGeminiUsageSummary } from "./gemini-usage";
 
 const POLL_MS = parseInt(process.env.WORKER_POLL_MS ?? "3000", 10);
 const CONCURRENCY = parseInt(process.env.WORKER_CONCURRENCY ?? "1", 10);
@@ -9,8 +10,8 @@ const CONCURRENCY = parseInt(process.env.WORKER_CONCURRENCY ?? "1", 10);
 let active = 0;
 let ready = false;
 
-function healthPayload() {
-  return {
+async function healthPayload() {
+  const base = {
     ok: true,
     service: "recipe-planner-worker",
     activeJobs: active,
@@ -18,8 +19,22 @@ function healthPayload() {
     hasDatabase: Boolean(process.env.DATABASE_URL),
     hasOpenAi: Boolean(process.env.OPENAI_API_KEY),
     hasGemini: hasGeminiApiKey(),
-    youtubeProcessor: hasGeminiApiKey() ? "gemini" : "openai",
+    youtubeProcessor: hasGeminiApiKey() ? "gemini-capped" : "openai",
+    geminiDailyLimit: getGeminiDailyLimit(),
+    maxVideoDurationSec: process.env.MAX_VIDEO_DURATION_SEC ?? "1200",
+    geminiMaxVideoSec: process.env.GEMINI_MAX_VIDEO_SEC ?? "600",
   };
+
+  if (!ready || !process.env.DATABASE_URL || !hasGeminiApiKey()) {
+    return base;
+  }
+
+  try {
+    const gemini = await getGeminiUsageSummary();
+    return { ...base, gemini };
+  } catch {
+    return base;
+  }
 }
 
 function startHealthServer() {
@@ -32,8 +47,15 @@ function startHealthServer() {
         path === "/api/health" ||
         path === "/"
       ) {
-        res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(JSON.stringify(healthPayload()));
+        healthPayload()
+          .then((payload) => {
+            res.writeHead(200, { "Content-Type": "application/json" });
+            res.end(JSON.stringify(payload));
+          })
+          .catch(() => {
+            res.writeHead(500);
+            res.end();
+          });
         return;
       }
       res.writeHead(404);
@@ -82,7 +104,7 @@ async function main() {
 
   if (!hasOpenAi) {
     console.warn(
-      "OPENAI_API_KEY not set — Instagram imports and Gemini fallback will not work"
+      "OPENAI_API_KEY not set — Instagram/Facebook and audio fallback will not work"
     );
   }
 
@@ -94,8 +116,14 @@ async function main() {
   }
 
   ready = true;
+  const geminiInfo = hasGeminiApiKey()
+    ? await getGeminiUsageSummary()
+    : null;
   console.log(
-    `Recipe Planner worker started (YouTube: ${hasGeminiApiKey() ? "Gemini" : "OpenAI"})`
+    `Recipe Planner worker started` +
+      (geminiInfo
+        ? ` — Gemini ${geminiInfo.used}/${geminiInfo.limit} used today (UTC)`
+        : "")
   );
   setInterval(() => {
     poll().catch((e) => console.error("Poll error:", e));

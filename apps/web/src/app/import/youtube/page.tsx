@@ -1,16 +1,31 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+
+type GeminiUsage = {
+  limit: number;
+  used: number;
+  remaining: number;
+  resetsAtUtc: string;
+};
 
 export default function YouTubeImportPage() {
   const [urls, setUrls] = useState("");
+  const [geminiUsage, setGeminiUsage] = useState<GeminiUsage | null>(null);
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<
     { url: string; recipeId: string; skipped: boolean }[] | null
   >(null);
   const [error, setError] = useState("");
   const [seedSummary, setSeedSummary] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/import/gemini-usage")
+      .then((r) => r.json())
+      .then((d) => setGeminiUsage(d))
+      .catch(() => setGeminiUsage(null));
+  }, [loading, seedSummary, results]);
 
   async function importStarterLibrary() {
     setLoading(true);
@@ -51,16 +66,29 @@ export default function YouTubeImportPage() {
     <div className="container">
       <h1>Import from YouTube</h1>
       <p className="muted">
-        Paste one or more YouTube URLs (one per line). The worker will
-        transcribe and extract a structured recipe.
+        Paste one or more YouTube URLs (one per line). The worker uses free
+        captions when available, then Gemini (daily cap), then audio download.
       </p>
+      {geminiUsage && (
+        <div className="card" style={{ borderColor: "#1565c0" }}>
+          <h3>Gemini quota (today, UTC)</h3>
+          <p>
+            <strong>{geminiUsage.used}</strong> / {geminiUsage.limit} videos
+            analyzed with Gemini · <strong>{geminiUsage.remaining}</strong>{" "}
+            remaining
+          </p>
+          <p className="muted">
+            Resets at {geminiUsage.resetsAtUtc}. Captions-first imports do not
+            use Gemini. Bulk starter library may use Whisper after quota is
+            used.
+          </p>
+        </div>
+      )}
       <div className="card">
         <h3>Starter library</h3>
         <p className="muted">
-          Import your saved collection (~80 YouTube & Instagram links: Palak
-          Paneer, Dal Makhani, Biryani, etc.). YouTube uses Gemini when{" "}
-          <code>GEMINI_API_KEY</code> is set on the worker; otherwise OpenAI
-          Whisper. Requires the worker to be running.
+          Import your saved collection (~80 links). Requires the worker to be
+          running.
         </p>
         <button
           type="button"
