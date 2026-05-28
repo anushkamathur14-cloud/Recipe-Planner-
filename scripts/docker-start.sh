@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-if echo "${RAILWAY_SERVICE_NAME:-}" | grep -qi 'worker'; then
+if [ "${DEPLOY_TARGET:-}" = "worker" ] || echo "${RAILWAY_SERVICE_NAME:-}" | grep -qi 'worker'; then
   exec node apps/worker/dist/index.js
 fi
 

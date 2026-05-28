@@ -2,6 +2,7 @@
 set -eu
 
 is_worker() {
+  [ "${DEPLOY_TARGET:-}" = "worker" ] && return 0
   echo "${RAILWAY_SERVICE_NAME:-}" | grep -qi 'worker'
 }
 

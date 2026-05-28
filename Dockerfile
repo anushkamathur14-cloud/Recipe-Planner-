@@ -3,7 +3,9 @@ FROM node:22-bookworm-slim
 WORKDIR /app
 
 ARG RAILWAY_SERVICE_NAME
+ARG DEPLOY_TARGET
 ENV RAILWAY_SERVICE_NAME=${RAILWAY_SERVICE_NAME}
+ENV DEPLOY_TARGET=${DEPLOY_TARGET}
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     openssl \
