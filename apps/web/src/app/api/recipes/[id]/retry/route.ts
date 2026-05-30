@@ -27,15 +27,40 @@ export async function POST(
       data: { status: RecipeStatus.pending, errorMessage: null },
     });
 
+    let payload: object | undefined;
+    if (recipe.sourceType === "image") {
+      const lastImageJob = await prisma.importJob.findFirst({
+        where: { recipeId: id, type: ImportJobType.image_upload },
+        orderBy: { createdAt: "desc" },
+      });
+      if (!lastImageJob?.payload) {
+        return NextResponse.json(
+          {
+            error:
+              "Re-upload the screenshot from Import → Web / Screenshot to retry this recipe.",
+          },
+          { status: 400 }
+        );
+      }
+      payload = lastImageJob.payload as object;
+    }
+
+    const jobType =
+      recipe.sourceType === "youtube"
+        ? ImportJobType.youtube_url
+        : recipe.sourceType === "website"
+          ? ImportJobType.website_url
+          : recipe.sourceType === "image"
+            ? ImportJobType.image_upload
+            : ImportJobType.instagram_url;
+
     const job = await prisma.importJob.create({
       data: {
         userId: user.id,
         recipeId: id,
-        type:
-          recipe.sourceType === "youtube"
-            ? ImportJobType.youtube_url
-            : ImportJobType.instagram_url,
+        type: jobType,
         sourceUrl: recipe.sourceUrl,
+        payload,
         status: ImportJobStatus.queued,
       },
     });

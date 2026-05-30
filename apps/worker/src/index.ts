@@ -104,7 +104,7 @@ async function main() {
 
   if (!hasOpenAi) {
     console.warn(
-      "OPENAI_API_KEY not set — Instagram/Facebook and audio fallback will not work"
+      "OPENAI_API_KEY not set — Instagram/Facebook, website imports, screenshot fallback, and audio fallback will not work"
     );
   }
 

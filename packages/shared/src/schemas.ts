@@ -24,6 +24,15 @@ export type Ingredient = z.infer<typeof ingredientSchema>;
 export type Step = z.infer<typeof stepSchema>;
 export type ExtractedRecipe = z.infer<typeof extractedRecipeSchema>;
 
+/** Stored on ImportJob.payload for screenshot imports (worker reads base64). */
+export const imageImportPayloadSchema = z.object({
+  mimeType: z.string(),
+  dataBase64: z.string(),
+  fileName: z.string().optional(),
+});
+
+export type ImageImportPayload = z.infer<typeof imageImportPayloadSchema>;
+
 export const MEAL_TYPES = ["breakfast", "lunch", "dinner", "snack"] as const;
 export const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
 

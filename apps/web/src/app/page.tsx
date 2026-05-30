@@ -3,6 +3,7 @@ import { prisma } from "@recipe-planner/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { StatusBadge } from "@/components/StatusBadge";
+import { SourceCell } from "@/components/RecipeLibraryTable";
 import { SetupBanner } from "@/components/SetupBanner";
 import { checkDatabase, getSetupIssues } from "@/lib/setup";
 
@@ -99,8 +100,11 @@ export default async function DashboardPage() {
           <Link href="/import/youtube" className="btn" style={{ marginRight: 8 }}>
             YouTube
           </Link>
-          <Link href="/import/instagram" className="btn btn-secondary">
+          <Link href="/import/instagram" className="btn btn-secondary" style={{ marginRight: 8 }}>
             IG / Facebook
+          </Link>
+          <Link href="/import/web" className="btn btn-secondary">
+            Web / Screenshot
           </Link>
         </div>
       )}
@@ -123,7 +127,9 @@ export default async function DashboardPage() {
                 <td>
                   <Link href={`/recipes/${r.id}`}>{r.name}</Link>
                 </td>
-                <td>{r.sourceType}</td>
+                <td>
+                  <SourceCell sourceUrl={r.sourceUrl} sourceType={r.sourceType} />
+                </td>
                 <td>
                   <StatusBadge status={r.status} />
                 </td>

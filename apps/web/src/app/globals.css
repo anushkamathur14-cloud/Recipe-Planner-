@@ -225,6 +225,14 @@ label {
   font-weight: 600;
 }
 
+.source-link {
+  font-size: 0.85rem;
+  word-break: break-all;
+  max-width: 20rem;
+  display: inline-block;
+  line-height: 1.35;
+}
+
 .serves-base {
   white-space: nowrap;
 }

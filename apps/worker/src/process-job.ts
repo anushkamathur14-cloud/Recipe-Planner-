@@ -1,10 +1,17 @@
 import { prisma, RecipeStatus, ImportJobStatus } from "@recipe-planner/db";
-import type { ExtractedRecipe } from "@recipe-planner/shared";
+import {
+  imageImportPayloadSchema,
+  type ExtractedRecipe,
+} from "@recipe-planner/shared";
 import { downloadAudio, cleanupPath } from "./download";
 import {
   transcribeAudio,
   extractRecipeFromTranscript,
+  extractRecipeFromText,
+  extractRecipeFromImageWithOpenAI,
 } from "./openai";
+import { fetchWebsiteText } from "./website-fetch";
+import { extractRecipeFromImageWithGemini } from "./gemini-image";
 import { tryYouTubeCaptions } from "./youtube-transcript";
 import {
   extractRecipeFromYouTubeWithGemini,
@@ -24,10 +31,6 @@ export async function processImportJob(jobId: string): Promise<void> {
   });
 
   if (!job || job.status !== ImportJobStatus.queued) return;
-  if (!job.sourceUrl) {
-    await failJob(jobId, job.recipeId, "Missing source URL");
-    return;
-  }
 
   await prisma.importJob.update({
     where: { id: jobId },
@@ -46,7 +49,30 @@ export async function processImportJob(jobId: string): Promise<void> {
   }
 
   if (job.type === "youtube_url") {
+    if (!job.sourceUrl) {
+      await failJob(jobId, job.recipeId, "Missing source URL");
+      return;
+    }
     await processYouTubeJob(jobId, job.sourceUrl, job.recipeId);
+    return;
+  }
+
+  if (job.type === "website_url") {
+    if (!job.sourceUrl) {
+      await failJob(jobId, job.recipeId, "Missing website URL");
+      return;
+    }
+    await processWebsiteJob(jobId, job.sourceUrl, job.recipeId);
+    return;
+  }
+
+  if (job.type === "image_upload") {
+    await processImageJob(jobId, job.payload, job.recipeId, job.sourceUrl);
+    return;
+  }
+
+  if (!job.sourceUrl) {
+    await failJob(jobId, job.recipeId, "Missing source URL");
     return;
   }
 
@@ -74,6 +100,96 @@ export async function processImportJob(jobId: string): Promise<void> {
     await failJob(jobId, job.recipeId, message);
   } finally {
     if (audioPath) await cleanupPath(audioPath);
+  }
+}
+
+async function processWebsiteJob(
+  jobId: string,
+  sourceUrl: string,
+  recipeId: string | null
+) {
+  try {
+    if (!process.env.OPENAI_API_KEY) {
+      await failJob(
+        jobId,
+        recipeId,
+        "Set OPENAI_API_KEY on the worker to import recipe websites."
+      );
+      return;
+    }
+
+    await updateProgress(jobId, "Fetching web page");
+    const pageText = await fetchWebsiteText(sourceUrl);
+
+    await updateProgress(jobId, "Extracting recipe");
+    const extracted = await extractRecipeFromText(
+      pageText,
+      sourceUrl,
+      "web page"
+    );
+
+    const transcript = `Imported from website: ${sourceUrl}\n\n${pageText.slice(0, 50_000)}`;
+    await saveRecipeResult(recipeId, extracted, transcript);
+    await completeJob(jobId);
+  } catch (err) {
+    await failJob(
+      jobId,
+      recipeId,
+      formatImportError(err, { geminiConfigured: hasGeminiApiKey() })
+    );
+  }
+}
+
+async function processImageJob(
+  jobId: string,
+  payload: unknown,
+  recipeId: string | null,
+  sourceUrl: string | null
+) {
+  const parsed = imageImportPayloadSchema.safeParse(payload);
+  if (!parsed.success) {
+    await failJob(jobId, recipeId, "Invalid image import payload");
+    return;
+  }
+
+  const { mimeType, dataBase64 } = parsed.data;
+  const label = sourceUrl ?? "screenshot";
+
+  try {
+    if (hasGeminiApiKey()) {
+      await updateProgress(jobId, "Reading screenshot with Gemini");
+      const { extracted, transcript } = await extractRecipeFromImageWithGemini(
+        mimeType,
+        dataBase64
+      );
+      await saveRecipeResult(recipeId, extracted, transcript);
+      await completeJob(jobId);
+      return;
+    }
+
+    if (!process.env.OPENAI_API_KEY) {
+      await failJob(
+        jobId,
+        recipeId,
+        "Set GEMINI_API_KEY or OPENAI_API_KEY on the worker for screenshot imports."
+      );
+      return;
+    }
+
+    await updateProgress(jobId, "Reading screenshot with GPT-4o");
+    const { extracted, transcript } = await extractRecipeFromImageWithOpenAI(
+      mimeType,
+      dataBase64,
+      label
+    );
+    await saveRecipeResult(recipeId, extracted, transcript);
+    await completeJob(jobId);
+  } catch (err) {
+    await failJob(
+      jobId,
+      recipeId,
+      formatImportError(err, { geminiConfigured: hasGeminiApiKey() })
+    );
   }
 }
 

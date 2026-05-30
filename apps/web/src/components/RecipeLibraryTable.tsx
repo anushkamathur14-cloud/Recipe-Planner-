@@ -11,6 +11,32 @@ import {
 import { Fragment } from "react";
 import { StatusBadge } from "./StatusBadge";
 
+function isBrowsableSourceUrl(url: string): boolean {
+  return url.startsWith("http://") || url.startsWith("https://");
+}
+
+export function SourceCell({ sourceUrl, sourceType }: { sourceUrl: string; sourceType: string }) {
+  if (!isBrowsableSourceUrl(sourceUrl)) {
+    return (
+      <span className="muted">
+        {sourceType === "image" ? "Screenshot" : sourceType}
+      </span>
+    );
+  }
+
+  return (
+    <a
+      href={sourceUrl}
+      target="_blank"
+      rel="noreferrer"
+      className="source-link"
+      title={sourceUrl}
+    >
+      {sourceUrl}
+    </a>
+  );
+}
+
 export type RecipeListItem = {
   id: string;
   name: string;
@@ -128,9 +154,7 @@ export function RecipeLibraryTable({ recipes }: { recipes: RecipeListItem[] }) {
                   />
                 </td>
                 <td>
-                  <a href={r.sourceUrl} target="_blank" rel="noreferrer">
-                    {r.sourceType}
-                  </a>
+                  <SourceCell sourceUrl={r.sourceUrl} sourceType={r.sourceType} />
                 </td>
                 <td>
                   <StatusBadge status={r.status} />

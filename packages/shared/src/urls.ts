@@ -116,3 +116,32 @@ export function resolveSourceType(
   if (isFacebookUrl(normalized)) return "facebook";
   return null;
 }
+
+/** HTTP(S) recipe blog / article — not a supported video platform URL. */
+export function isImportableWebsiteUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url.trim());
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      return false;
+    }
+    return resolveSourceType(normalizeSourceUrl(url)) === null;
+  } catch {
+    return false;
+  }
+}
+
+export function normalizeWebsiteUrls(input: string): string[] {
+  const lines = input
+    .split(/[\n,]+/)
+    .map((l) => l.trim())
+    .filter(Boolean);
+  const urls: string[] = [];
+  for (const line of lines) {
+    const match = line.match(/https?:\/\/[^\s]+/);
+    const candidate = match ? match[0] : line;
+    if (isImportableWebsiteUrl(candidate)) {
+      urls.push(normalizeSourceUrl(candidate));
+    }
+  }
+  return [...new Set(urls)];
+}

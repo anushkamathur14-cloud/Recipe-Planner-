@@ -20,9 +20,29 @@ export async function transcribeAudio(filePath: string): Promise<string> {
   return response.text;
 }
 
+const RECIPE_JSON_FIELDS = `- name: recipe title
+- servings: integer default servings
+- ingredients: array of { name, quantity (number or null), unit (string or null), notes? }
+- steps: array of { order (1-based), text } — include specific quantities when mentioned
+- confidence: "high" | "medium" | "low" based on how complete the source is
+
+Be faithful to the source. Use null quantity when not specified.`;
+
 export async function extractRecipeFromTranscript(
   transcript: string,
   sourceUrl: string
+): Promise<ExtractedRecipe> {
+  return extractRecipeFromText(
+    transcript,
+    sourceUrl,
+    "video transcript"
+  );
+}
+
+export async function extractRecipeFromText(
+  text: string,
+  sourceLabel: string,
+  sourceKind: "video transcript" | "web page" | "screenshot"
 ): Promise<ExtractedRecipe> {
   const response = await getOpenAI().chat.completions.create({
     model: "gpt-4o",
@@ -30,18 +50,12 @@ export async function extractRecipeFromTranscript(
     messages: [
       {
         role: "system",
-        content: `You extract structured recipes from video transcripts. Return JSON with:
-- name: recipe title
-- servings: integer default servings
-- ingredients: array of { name, quantity (number or null), unit (string or null), notes? }
-- steps: array of { order (1-based), text } — each step must include specific quantities when mentioned in the transcript
-- confidence: "high" | "medium" | "low" based on how complete the transcript is
-
-Be faithful to the transcript. Use null quantity when not specified.`,
+        content: `You extract structured recipes from ${sourceKind} content. Return JSON with:
+${RECIPE_JSON_FIELDS}`,
       },
       {
         role: "user",
-        content: `Source URL: ${sourceUrl}\n\nTranscript:\n${transcript.slice(0, 120000)}`,
+        content: `Source: ${sourceLabel}\n\nContent:\n${text.slice(0, 120000)}`,
       },
     ],
   });
@@ -50,6 +64,63 @@ Be faithful to the transcript. Use null quantity when not specified.`,
   if (!raw) throw new Error("Empty LLM response");
   const parsed = JSON.parse(raw);
   return extractedRecipeSchema.parse(parsed);
+}
+
+export async function extractRecipeFromImageWithOpenAI(
+  mimeType: string,
+  dataBase64: string,
+  sourceLabel: string
+): Promise<{ extracted: ExtractedRecipe; transcript: string }> {
+  const response = await getOpenAI().chat.completions.create({
+    model: "gpt-4o",
+    response_format: { type: "json_object" },
+    messages: [
+      {
+        role: "system",
+        content: `You extract structured recipes from recipe screenshots. Return JSON with:
+${RECIPE_JSON_FIELDS}
+- transcript: plain-text summary of all recipe text visible in the image`,
+      },
+      {
+        role: "user",
+        content: [
+          { type: "text", text: `Source: ${sourceLabel}\n\nExtract the recipe from this image.` },
+          {
+            type: "image_url",
+            image_url: {
+              url: `data:${mimeType};base64,${dataBase64}`,
+            },
+          },
+        ],
+      },
+    ],
+  });
+
+  const raw = response.choices[0]?.message?.content;
+  if (!raw) throw new Error("Empty LLM response");
+  const parsed = JSON.parse(raw) as Record<string, unknown>;
+  const rawTranscript =
+    typeof parsed.transcript === "string" ? parsed.transcript : "";
+  const { transcript: _t, ...recipeFields } = parsed;
+  const extracted = extractedRecipeSchema.parse(recipeFields);
+
+  const transcript =
+    rawTranscript.trim() ||
+    [
+      extracted.name,
+      "",
+      "Ingredients:",
+      ...extracted.ingredients.map((i) =>
+        [i.quantity, i.unit, i.name, i.notes ? `(${i.notes})` : ""]
+          .filter(Boolean)
+          .join(" ")
+      ),
+      "",
+      "Steps:",
+      ...extracted.steps.map((s) => `${s.order}. ${s.text}`),
+    ].join("\n");
+
+  return { extracted, transcript };
 }
 
 export async function answerRecipeQuestion(

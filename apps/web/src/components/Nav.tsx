@@ -19,6 +19,7 @@ export async function Nav() {
           <>
             <Link href="/import/youtube">YouTube</Link>
             <Link href="/import/instagram">IG / Facebook</Link>
+            <Link href="/import/web">Web / Screenshot</Link>
             <Link href="/settings">Settings</Link>
           </>
         )}

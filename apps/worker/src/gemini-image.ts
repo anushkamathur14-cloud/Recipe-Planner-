@@ -1,60 +1,33 @@
 import { GoogleGenAI } from "@google/genai";
 import {
   extractedRecipeSchema,
-  toYouTubeWatchUrl,
   type ExtractedRecipe,
 } from "@recipe-planner/shared";
+import { parseJsonResponse, geminiErrorMessage, getGeminiModel } from "./gemini-shared";
 
-const RECIPE_PROMPT = `You are extracting a recipe from a cooking video.
+const IMAGE_RECIPE_PROMPT = `You are extracting a structured recipe from a screenshot of a recipe (cookbook page, blog, app, or handwritten notes).
 
-Watch the video and return JSON only (no markdown) with:
+Return JSON only (no markdown) with:
 - name: recipe title
 - servings: integer default servings
 - ingredients: array of { name, quantity (number or null), unit (string or null), notes? }
-- steps: array of { order (1-based), text } — include quantities when mentioned
+- steps: array of { order (1-based), text } — include quantities when visible
 - confidence: "high" | "medium" | "low"
-- transcript: full spoken instructions from the video as plain text
+- transcript: plain-text summary of all recipe text you can read in the image
 
-Be faithful to the video. Use null quantity when not specified.`;
+Be faithful to the image. Use null quantity when not specified.`;
 
-export function hasGeminiApiKey(): boolean {
-  return Boolean(process.env.GEMINI_API_KEY?.trim());
-}
-
-import {
-  geminiErrorMessage,
-  getGeminiModel,
-  parseJsonResponse,
-} from "./gemini-shared";
-
-export async function extractRecipeFromYouTubeWithGemini(
-  sourceUrl: string
+export async function extractRecipeFromImageWithGemini(
+  mimeType: string,
+  dataBase64: string
 ): Promise<{ extracted: ExtractedRecipe; transcript: string }> {
   const apiKey = process.env.GEMINI_API_KEY?.trim();
   if (!apiKey) {
-    throw new Error("GEMINI_API_KEY is required for Gemini YouTube processing");
+    throw new Error("GEMINI_API_KEY is required for image import");
   }
 
-  const watchUrl = toYouTubeWatchUrl(sourceUrl);
   const ai = new GoogleGenAI({ apiKey });
   const model = getGeminiModel();
-  const maxVideoSec = parseInt(process.env.GEMINI_MAX_VIDEO_SEC ?? "600", 10);
-  const videoEndSec =
-    Number.isFinite(maxVideoSec) && maxVideoSec > 0 ? maxVideoSec : 600;
-
-  const videoPart: {
-    fileData: { fileUri: string; mimeType: string };
-    videoMetadata?: { startOffset: string; endOffset: string };
-  } = {
-    fileData: {
-      fileUri: watchUrl,
-      mimeType: "video/*",
-    },
-    videoMetadata: {
-      startOffset: "0s",
-      endOffset: `${videoEndSec}s`,
-    },
-  };
 
   let response;
   try {
@@ -63,7 +36,10 @@ export async function extractRecipeFromYouTubeWithGemini(
       contents: [
         {
           role: "user",
-          parts: [videoPart, { text: RECIPE_PROMPT }],
+          parts: [
+            { inlineData: { mimeType, data: dataBase64 } },
+            { text: IMAGE_RECIPE_PROMPT },
+          ],
         },
       ],
       config: {
@@ -76,9 +52,7 @@ export async function extractRecipeFromYouTubeWithGemini(
 
   const text = response.text;
   if (!text) {
-    throw new Error(
-      "Gemini returned an empty response — video may be private or unsupported"
-    );
+    throw new Error("Gemini returned an empty response for this image");
   }
 
   try {

@@ -32,9 +32,13 @@ export default async function RecipeDetailPage({
       <h1>{recipe.name}</h1>
       <p>
         <StatusBadge status={recipe.status} /> · Serves {recipe.servings} ·{" "}
-        <a href={recipe.sourceUrl} target="_blank" rel="noreferrer">
-          View {recipe.sourceType} source
-        </a>
+        {recipe.sourceType === "image" ? (
+          <span className="muted">Imported from screenshot</span>
+        ) : (
+          <a href={recipe.sourceUrl} target="_blank" rel="noreferrer">
+            View {recipe.sourceType} source
+          </a>
+        )}
       </p>
       {recipe.errorMessage && (
         <p className="error">{recipe.errorMessage}</p>
